@@ -1,0 +1,7 @@
+node_modules/
+build/
+*.xpi
+!releases/
+!releases/*.xpi
+.env
+.scaffold/
