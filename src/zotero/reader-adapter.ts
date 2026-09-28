@@ -13,9 +13,9 @@ export interface PdfPageHandle {
 }
 
 type Cleanup = () => void;
-const NATIVE_HOVER_STYLE_ID = "zmc-native-hover-styles";
+const NATIVE_HOVER_STYLE_ID = "zmm-native-hover-styles";
 const NATIVE_HOVER_STYLES = `
-[data-annotation-id].zmc-native-hover {
+[data-annotation-id].zmm-native-hover {
   filter: brightness(.9) saturate(1.22) drop-shadow(0 1px 1.5px rgba(0, 0, 0, .28));
   scale: 1.018;
   transform-box: fill-box;
@@ -246,7 +246,7 @@ export class Zotero9ReaderAdapter {
     this.ensureNativeHoverStyle();
     this.hoveredAnnotationElements = this.nativeAnnotationElements(key);
     for (const element of this.hoveredAnnotationElements) {
-      element.classList.add("zmc-native-hover");
+      element.classList.add("zmm-native-hover");
     }
   }
 
@@ -383,7 +383,7 @@ export class Zotero9ReaderAdapter {
 
   private clearAnnotationHover(): void {
     for (const element of this.hoveredAnnotationElements) {
-      element.classList.remove("zmc-native-hover");
+      element.classList.remove("zmm-native-hover");
     }
     this.hoveredAnnotationElements = [];
     this.hoveredAnnotationKey = undefined;
@@ -406,7 +406,7 @@ function compactNotePatchSource(enabled: boolean): string {
     const iconSize = ${ZOTERO_NOTE_ICON_SIZE};
     const compactSize = ${COMPACT_NOTE_ICON_SIZE};
     const compactOffset = ${COMPACT_NOTE_ICON_OFFSET};
-    const stateKey = "__zmcCompactNotePatchV2";
+    const stateKey = "__zmmCompactNotePatchV2";
     const root = window;
     const view = root._reader?._primaryView;
     let state = root[stateKey];

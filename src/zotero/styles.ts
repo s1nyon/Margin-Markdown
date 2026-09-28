@@ -1,11 +1,11 @@
 export const PDF_STYLES = `
-.pdfViewer.zmc-viewer {
-  --zmc-gutter-width: 304px;
-  padding-inline-start: calc(18px + var(--zmc-gutter-width)) !important;
-  padding-inline-end: calc(18px + var(--zmc-gutter-width)) !important;
+.pdfViewer.zmm-viewer {
+  --zmm-gutter-width: 304px;
+  padding-inline-start: calc(18px + var(--zmm-gutter-width)) !important;
+  padding-inline-end: calc(18px + var(--zmm-gutter-width)) !important;
 }
 
-.zmc-overlay-root {
+.zmm-overlay-root {
   position: absolute;
   top: 0;
   left: 0;
@@ -16,20 +16,20 @@ export const PDF_STYLES = `
   z-index: 90;
 }
 
-.zmc-page-overlay {
+.zmm-page-overlay {
   position: absolute;
   overflow: visible;
   pointer-events: none;
 }
 
-.zmc-line-layer {
+.zmm-line-layer {
   position: absolute;
   inset: 0 auto auto 0;
   overflow: visible;
   pointer-events: none;
 }
 
-.zmc-line {
+.zmm-line {
   fill: none;
   stroke-width: 1.35;
   stroke-linecap: round;
@@ -39,24 +39,24 @@ export const PDF_STYLES = `
   transition: opacity .14s ease, stroke-width .14s ease, filter .14s ease;
 }
 
-.zmc-line-dot {
+.zmm-line-dot {
   stroke: white;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
   transition: filter .14s ease, r .14s ease;
 }
 
-.zmc-line.zmc-hovered {
+.zmm-line.zmm-hovered {
   stroke-width: 2;
   opacity: .98;
   filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .28));
 }
 
-.zmc-line-dot.zmc-hovered {
+.zmm-line-dot.zmm-hovered {
   filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .3));
 }
 
-[data-annotation-id].zmc-native-hover {
+[data-annotation-id].zmm-native-hover {
   filter: brightness(.9) saturate(1.22) drop-shadow(0 1px 1.5px rgba(0, 0, 0, .28));
   scale: 1.018;
   transform-box: fill-box;
@@ -64,14 +64,14 @@ export const PDF_STYLES = `
   transition: filter .14s ease, scale .14s ease;
 }
 
-.zmc-card-layer {
+.zmm-card-layer {
   position: absolute;
   inset: 0;
   overflow: visible;
   pointer-events: none;
 }
 
-.zmc-margin-column {
+.zmm-margin-column {
   position: absolute;
   top: 0;
   width: 264px;
@@ -80,15 +80,15 @@ export const PDF_STYLES = `
   pointer-events: none;
 }
 
-.zmc-margin-column-left {
+.zmm-margin-column-left {
   right: calc(100% + 24px);
 }
 
-.zmc-margin-column-right {
+.zmm-margin-column-right {
   left: calc(100% + 24px);
 }
 
-.zmc-margin-scrollport {
+.zmm-margin-scrollport {
   position: absolute;
   inset: 0;
   overflow: visible;
@@ -97,21 +97,21 @@ export const PDF_STYLES = `
   scrollbar-color: color-mix(in srgb, CanvasText 32%, transparent) transparent;
 }
 
-.zmc-margin-content {
+.zmm-margin-content {
   position: relative;
   width: 100%;
   min-height: 100%;
   pointer-events: none;
 }
 
-.zmc-margin-expanded .zmc-margin-scrollport {
+.zmm-margin-expanded .zmm-margin-scrollport {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
 }
 
-.zmc-margin-toggle {
+.zmm-margin-toggle {
   position: absolute;
   left: 0;
   z-index: 3;
@@ -121,7 +121,7 @@ export const PDF_STYLES = `
   padding: 5px 10px;
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
   border-radius: 6px;
-  background: color-mix(in srgb, Canvas 93%, var(--zmc-toggle-color, #6b7c93) 7%);
+  background: color-mix(in srgb, Canvas 93%, var(--zmm-toggle-color, #6b7c93) 7%);
   color: CanvasText;
   box-shadow: 0 1px 4px rgba(0, 0, 0, .14);
   font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -129,113 +129,220 @@ export const PDF_STYLES = `
   pointer-events: auto;
 }
 
-.zmc-margin-toggle:hover {
+.zmm-margin-toggle:hover {
   background: color-mix(in srgb, Canvas 86%, CanvasText 14%);
 }
 
-.zmc-margin-toggle[hidden] {
+.zmm-margin-toggle[hidden] {
   display: none;
 }
 
-.zmc-card {
+.zmm-card {
   position: absolute;
   box-sizing: border-box;
   width: 264px;
   min-height: 42px;
   padding: 7px 9px;
-  border: 1px solid color-mix(in srgb, var(--zmc-color) 45%, #a8adb5);
+  border: 1px solid color-mix(in srgb, var(--zmm-color) 45%, #a8adb5);
   border-radius: 6px;
-  background: color-mix(in srgb, Canvas 96%, var(--zmc-color) 4%);
+  background: color-mix(in srgb, Canvas 96%, var(--zmm-color) 4%);
   color: CanvasText;
   box-shadow: 0 1px 4px rgba(0, 0, 0, .16);
-  font: 12.5px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: var(--zmm-preview-font-size, 13px)/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
   pointer-events: auto;
   transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
 }
 
-.zmc-card-right {
+.zmm-card-right {
   padding-left: 11px;
-  border-left: 3px solid var(--zmc-color);
+  border-left: 3px solid var(--zmm-color);
   transform-origin: left center;
 }
 
-.zmc-card-left {
+.zmm-card-left {
   padding-right: 11px;
-  border-right: 3px solid var(--zmc-color);
+  border-right: 3px solid var(--zmm-color);
   transform-origin: right center;
 }
 
-.zmc-margin-column .zmc-card {
+.zmm-margin-column .zmm-card {
   right: auto;
   left: 0;
 }
 
-.zmc-card.zmc-overflow-hidden,
-.zmc-card.zmc-filtered {
+.zmm-card.zmm-overflow-hidden,
+.zmm-card.zmm-filtered {
   display: none;
 }
 
-.zmc-card:hover,
-.zmc-card.zmc-hovered,
-.zmc-card.zmc-active {
-  border-color: var(--zmc-color);
+.zmm-card:hover,
+.zmm-card.zmm-hovered,
+.zmm-card.zmm-active {
+  border-color: var(--zmm-color);
   box-shadow: 0 2px 9px rgba(0, 0, 0, .22);
 }
 
-.zmc-card.zmc-hovered {
+.zmm-card.zmm-hovered {
   z-index: 4;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .27);
 }
 
-.zmc-card-right.zmc-hovered {
+.zmm-card-right.zmm-hovered {
   transform: translateX(3px) scale(1.018);
 }
 
-.zmc-card-left.zmc-hovered {
+.zmm-card-left.zmm-hovered {
   transform: translateX(-3px) scale(1.018);
 }
 
-.zmc-card-right.zmc-active:not(.zmc-hovered) {
+.zmm-card-right.zmm-active:not(.zmm-hovered) {
   transform: translateX(2px);
 }
 
-.zmc-card-left.zmc-active:not(.zmc-hovered) {
+.zmm-card-left.zmm-active:not(.zmm-hovered) {
   transform: translateX(-2px);
 }
 
-.zmc-card-preview {
-  display: -webkit-box;
+.zmm-card-preview {
+  display: block;
   box-sizing: border-box;
   width: 100%;
-  max-height: calc(3 * 1.45em);
+  max-height: 7.2em;
   margin: 0;
   padding: 3px 4px;
   overflow: hidden;
   border: 1px solid transparent;
   border-radius: 3px;
-  appearance: none;
   background: transparent;
   color: inherit;
-  font: inherit;
+  font-size: inherit;
   line-height: 1.45;
   text-align: start;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   cursor: text;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.2em), transparent 100%);
 }
 
-.zmc-card-preview:hover {
+.zmm-card-preview.zmm-preview-expanded {
+  max-height: none;
+  overflow: visible;
+  mask-image: none;
+}
+
+.zmm-card-preview p {
+  margin: .35em 0;
+}
+
+.zmm-card-preview > :first-child {
+  margin-top: 0;
+}
+
+.zmm-card-preview > :last-child {
+  margin-bottom: 0;
+}
+
+.zmm-card-preview h1,
+.zmm-card-preview h2,
+.zmm-card-preview h3,
+.zmm-card-preview h4,
+.zmm-card-preview h5,
+.zmm-card-preview h6 {
+  margin: .42em 0 .32em;
+  font-size: 1em;
+  line-height: 1.25;
+}
+
+.zmm-card.zmm-compact-headings .zmm-card-preview h1 {
+  font-size: 1.28em;
+}
+
+.zmm-card.zmm-compact-headings .zmm-card-preview h2 {
+  font-size: 1.2em;
+}
+
+.zmm-card.zmm-compact-headings .zmm-card-preview h3 {
+  font-size: 1.12em;
+}
+
+.zmm-card-preview ul,
+.zmm-card-preview ol {
+  margin: .35em 0;
+  padding-inline-start: 1.4em;
+}
+
+.zmm-card-preview li + li {
+  margin-top: .18em;
+}
+
+.zmm-card-preview blockquote {
+  margin: .4em 0;
+  padding-inline-start: .65em;
+  border-inline-start: 2px solid color-mix(in srgb, CanvasText 25%, transparent);
+  color: color-mix(in srgb, CanvasText 82%, transparent);
+}
+
+.zmm-card-preview code,
+.zmm-card-preview pre {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: .92em;
+}
+
+.zmm-card-preview pre {
+  max-width: 100%;
+  padding: .4em .5em;
+  overflow: auto;
+  border-radius: 4px;
+  background: color-mix(in srgb, CanvasText 7%, transparent);
+}
+
+.zmm-card-preview .katex {
+  font-size: var(--zmm-math-font-size, 13px);
+}
+
+.zmm-card-preview .katex-display {
+  max-width: 100%;
+  margin: .45em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: left;
+}
+
+.zmm-card-preview a {
+  color: LinkText;
+  text-decoration: underline;
+  text-decoration-thickness: .06em;
+  text-underline-offset: .12em;
+}
+
+.zmm-preview-expand {
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: color-mix(in srgb, CanvasText 62%, transparent);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.zmm-preview-expand:hover {
+  background: color-mix(in srgb, CanvasText 8%, transparent);
+  color: CanvasText;
+}
+
+.zmm-preview-expand[hidden] {
+  display: none;
+}
+
+.zmm-card-preview:hover {
   background: color-mix(in srgb, CanvasText 3%, transparent);
 }
 
-.zmc-card-preview.zmc-empty-preview {
+.zmm-card-preview.zmm-empty-preview {
   color: color-mix(in srgb, CanvasText 48%, transparent);
 }
 
-.zmc-card-editor {
+.zmm-card-editor {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -250,7 +357,7 @@ export const PDF_STYLES = `
   outline: none;
   background: transparent;
   color: inherit;
-  font: inherit;
+  font-size: inherit;
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -259,62 +366,59 @@ export const PDF_STYLES = `
   user-select: text !important;
 }
 
-.zmc-card-editor:hover {
+.zmm-card-editor:hover {
   background: color-mix(in srgb, CanvasText 3%, transparent);
 }
 
-.zmc-card-editor:focus {
-  border-color: color-mix(in srgb, var(--zmc-color) 72%, #4a78c2);
+.zmm-card-editor:focus {
+  border-color: color-mix(in srgb, var(--zmm-color) 72%, #4a78c2);
   background: Canvas;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--zmc-color) 18%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--zmm-color) 18%, transparent);
 }
 
-.zmc-card-editor[contenteditable="false"] {
+.zmm-card-editor[readonly] {
   cursor: default;
 }
 
-.zmc-card-editor:empty::before {
-  content: attr(data-placeholder);
+.zmm-card-editor::placeholder {
   color: color-mix(in srgb, CanvasText 48%, transparent);
-  pointer-events: none;
 }
 
 /* PDF.js/Zotero selection rules can make a real DOM Range effectively
    invisible. Keep the editor's native selection visibly distinct. */
-.zmc-card-editor::selection,
-.zmc-card-editor *::selection {
+.zmm-card-editor::selection {
   background: Highlight !important;
   color: HighlightText !important;
   text-shadow: none !important;
 }
 
-.zmc-card-editor::-moz-selection,
-.zmc-card-editor *::-moz-selection {
+.zmm-card-editor::-moz-selection {
   background: Highlight !important;
   color: HighlightText !important;
   text-shadow: none !important;
 }
 
-.zmc-card .zmc-preview-hidden,
-.zmc-card .zmc-editor-hidden {
+.zmm-card .zmm-preview-hidden,
+.zmm-card .zmm-editor-hidden {
   display: none;
 }
 
-.zmc-low-zoom .zmc-card:not(.zmc-editing) {
+.zmm-low-zoom .zmm-card:not(.zmm-editing) {
   min-height: 0;
   padding-top: 5px;
   padding-bottom: 5px;
 }
 
-.zmc-low-zoom .zmc-card:not(.zmc-editing) .zmc-card-preview {
+.zmm-low-zoom .zmm-card:not(.zmm-editing) .zmm-card-preview {
   display: block;
   max-height: 1.45em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  mask-image: none;
 }
 
-.zmc-card-footer {
+.zmm-card-footer {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -322,34 +426,38 @@ export const PDF_STYLES = `
   margin-top: 3px;
 }
 
-.zmc-card-footer:has(.zmc-save-state:empty) {
+.zmm-card-footer:has(.zmm-save-state:empty):has(.zmm-preview-expand[hidden]) {
   display: none;
 }
 
-.zmc-save-state {
+.zmm-card-footer:has(.zmm-preview-expand:not([hidden])) {
+  justify-content: space-between;
+}
+
+.zmm-save-state {
   margin-right: auto;
   color: color-mix(in srgb, CanvasText 55%, transparent);
   font-size: 10px;
 }
 
-.zmc-save-state[data-error="true"] {
+.zmm-save-state[data-error="true"] {
   color: #c83c36;
 }
 
 @media (prefers-color-scheme: dark) {
-  .zmc-card {
+  .zmm-card {
     box-shadow: 0 2px 7px rgba(0, 0, 0, .42);
   }
 }
 `;
 
 export const TOOLBAR_STYLES = `
-.zmc-toolbar-toggle svg {
+.zmm-toolbar-toggle svg {
   width: 20px;
   height: 20px;
   pointer-events: none;
 }
-.zmc-toolbar-toggle.active {
+.zmm-toolbar-toggle.active {
   background: color-mix(in srgb, currentColor 13%, transparent) !important;
 }
 `;

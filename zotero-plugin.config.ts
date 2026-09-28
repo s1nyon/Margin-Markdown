@@ -7,7 +7,7 @@ export default defineConfig({
   name: pkg.config.addonName,
   id: pkg.config.addonID,
   namespace: pkg.config.addonRef,
-  xpiName: `margin-comments-${pkg.version}`,
+  xpiName: `margin-markdown-${pkg.version}`,
   build: {
     assets: ["addon/**/*.*"],
     define: {

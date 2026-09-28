@@ -1,52 +1,52 @@
-<vbox id="zotero-prefpane-margincomments"
-      onload="Zotero.MarginComments.controller.registerPreferencePaneWindow(window)">
+<vbox id="zotero-prefpane-marginmarkdown"
+      onload="Zotero.MarginMarkdown.controller.registerPreferencePaneWindow(window)">
   <groupbox data-search-strings-raw="页边批注,旁注,批注类型,高亮,下划线,划线,便签,文字,图片,区域,图标,尺寸,缩小">
     <label>
-      <html:h2 class="zmc-prefs-heading">旁注显示</html:h2>
+      <html:h2 class="zmm-prefs-heading">旁注显示</html:h2>
     </label>
-    <description class="zmc-prefs-description">
+    <description class="zmm-prefs-description">
       选择需要显示在 PDF 页面两侧的 Zotero 批注类型。修改会立即应用到所有已打开的 PDF。
     </description>
   </groupbox>
 
   <groupbox>
     <label>
-      <html:h2 class="zmc-prefs-heading">显示的批注类型</html:h2>
+      <html:h2 class="zmm-prefs-heading">显示的批注类型</html:h2>
     </label>
-    <html:div class="zmc-prefs-type-list">
-      <html:label class="zmc-prefs-type-row" for="zmc-prefs-type-highlight">
-        <html:input id="zmc-prefs-type-highlight"
+    <html:div class="zmm-prefs-type-list">
+      <html:label class="zmm-prefs-type-row" for="zmm-prefs-type-highlight">
+        <html:input id="zmm-prefs-type-highlight"
                     type="checkbox"
-                    data-zmc-type="highlight"
-                    preference="extensions.zotero.margincomments.types.highlight" />
+                    data-zmm-type="highlight"
+                    preference="extensions.zotero.marginmarkdown.types.highlight" />
         <html:span>高亮</html:span>
       </html:label>
-      <html:label class="zmc-prefs-type-row" for="zmc-prefs-type-underline">
-        <html:input id="zmc-prefs-type-underline"
+      <html:label class="zmm-prefs-type-row" for="zmm-prefs-type-underline">
+        <html:input id="zmm-prefs-type-underline"
                     type="checkbox"
-                    data-zmc-type="underline"
-                    preference="extensions.zotero.margincomments.types.underline" />
+                    data-zmm-type="underline"
+                    preference="extensions.zotero.marginmarkdown.types.underline" />
         <html:span>下划线</html:span>
       </html:label>
-      <html:label class="zmc-prefs-type-row" for="zmc-prefs-type-note">
-        <html:input id="zmc-prefs-type-note"
+      <html:label class="zmm-prefs-type-row" for="zmm-prefs-type-note">
+        <html:input id="zmm-prefs-type-note"
                     type="checkbox"
-                    data-zmc-type="note"
-                    preference="extensions.zotero.margincomments.types.note" />
+                    data-zmm-type="note"
+                    preference="extensions.zotero.marginmarkdown.types.note" />
         <html:span>便签</html:span>
       </html:label>
-      <html:label class="zmc-prefs-type-row" for="zmc-prefs-type-text">
-        <html:input id="zmc-prefs-type-text"
+      <html:label class="zmm-prefs-type-row" for="zmm-prefs-type-text">
+        <html:input id="zmm-prefs-type-text"
                     type="checkbox"
-                    data-zmc-type="text"
-                    preference="extensions.zotero.margincomments.types.text" />
+                    data-zmm-type="text"
+                    preference="extensions.zotero.marginmarkdown.types.text" />
         <html:span>文字批注</html:span>
       </html:label>
-      <html:label class="zmc-prefs-type-row" for="zmc-prefs-type-image">
-        <html:input id="zmc-prefs-type-image"
+      <html:label class="zmm-prefs-type-row" for="zmm-prefs-type-image">
+        <html:input id="zmm-prefs-type-image"
                     type="checkbox"
-                    data-zmc-type="image"
-                    preference="extensions.zotero.margincomments.types.image" />
+                    data-zmm-type="image"
+                    preference="extensions.zotero.marginmarkdown.types.image" />
         <html:span>图片与区域</html:span>
       </html:label>
     </html:div>
@@ -54,18 +54,78 @@
 
   <groupbox>
     <label>
-      <html:h2 class="zmc-prefs-heading">阅读器外观</html:h2>
+      <html:h2 class="zmm-prefs-heading">阅读器外观</html:h2>
     </label>
-    <html:label class="zmc-prefs-option-row" for="zmc-prefs-compact-note-icons">
-      <html:input id="zmc-prefs-compact-note-icons"
+    <html:label class="zmm-prefs-option-row" for="zmm-prefs-compact-note-icons">
+      <html:input id="zmm-prefs-compact-note-icons"
                   type="checkbox"
-                  data-zmc-setting="compact-note-icons"
-                  preference="extensions.zotero.margincomments.compactNoteIcons" />
+                  data-zmm-setting="compact-note-icons"
+                  preference="extensions.zotero.marginmarkdown.compactNoteIcons" />
       <html:span>
         <html:strong>缩小便签图标</html:strong>
         <html:small>缩小PDF页面原生便签图标到14px。</html:small>
         <html:small>注：该功能有强版本依赖，如遇bug请关闭该选项。</html:small>
       </html:span>
+    </html:label>
+  </groupbox>
+
+  <groupbox>
+    <label>
+      <html:h2 class="zmm-prefs-heading">Markdown 与公式</html:h2>
+    </label>
+    <html:label class="zmm-prefs-option-row" for="zmm-prefs-render-markdown">
+      <html:input id="zmm-prefs-render-markdown"
+                  type="checkbox"
+                  data-zmm-render-setting="markdown"
+                  preference="extensions.zotero.marginmarkdown.rendering.markdown" />
+      <html:span>
+        <html:strong>渲染 Markdown</html:strong>
+        <html:small>阅读时显示标题、列表、引用、代码和链接；编辑时仍显示原始文本。</html:small>
+      </html:span>
+    </html:label>
+    <html:label class="zmm-prefs-option-row" for="zmm-prefs-render-latex">
+      <html:input id="zmm-prefs-render-latex"
+                  type="checkbox"
+                  data-zmm-render-setting="latex"
+                  preference="extensions.zotero.marginmarkdown.rendering.latex" />
+      <html:span>
+        <html:strong>渲染 LaTeX</html:strong>
+        <html:small>支持 $…$、$$…$$、\(…\) 和 \[…\] 公式。</html:small>
+      </html:span>
+    </html:label>
+    <html:label class="zmm-prefs-option-row" for="zmm-prefs-compact-headings">
+      <html:input id="zmm-prefs-compact-headings"
+                  type="checkbox"
+                  data-zmm-render-setting="compactHeadings"
+                  preference="extensions.zotero.marginmarkdown.rendering.compactHeadings" />
+      <html:span>
+        <html:strong>紧凑标题</html:strong>
+        <html:small>使用适合论文页边卡片的标题比例。</html:small>
+      </html:span>
+    </html:label>
+    <html:label class="zmm-prefs-range-row" for="zmm-prefs-preview-size">
+      <html:span>预览字号</html:span>
+      <html:input id="zmm-prefs-preview-size"
+                  type="range"
+                  min="80"
+                  max="160"
+                  step="5"
+                  value="100"
+                  data-zmm-render-setting="previewFontSize"
+                  preference="extensions.zotero.marginmarkdown.rendering.previewFontSize" />
+      <html:output data-zmm-render-output="previewFontSize">100%</html:output>
+    </html:label>
+    <html:label class="zmm-prefs-range-row" for="zmm-prefs-math-size">
+      <html:span>公式字号</html:span>
+      <html:input id="zmm-prefs-math-size"
+                  type="range"
+                  min="80"
+                  max="160"
+                  step="5"
+                  value="100"
+                  data-zmm-render-setting="mathScale"
+                  preference="extensions.zotero.marginmarkdown.rendering.mathScale" />
+      <html:output data-zmm-render-output="mathScale">100%</html:output>
     </html:label>
   </groupbox>
 

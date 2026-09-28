@@ -1,25 +1,54 @@
-# Zotero 9.0.6 人工验收
+# Manual smoke test
 
-1. 使用单独的 Zotero 测试配置文件安装 `margin-comments-0.8.6.xpi`。
-2. 打开包含高亮评论、下划线评论和独立便签的 PDF。
-3. 确认工具栏出现“页边批注”按钮；页面左半区批注的卡片位于左边，右半区批注的卡片位于右边，引线从批注上边缘引出。
-4. 在同一侧创建足以超过页面高度的评论，确认页面底部出现“还有 N 条”，且卡片不延伸到下一页。
-5. 点击“还有 N 条”，确认只有当前侧边栏展开滚动；滚动时可见卡片的引线同步移动，滚出视野的卡片不显示引线；点击“收起评论”恢复折叠。
-6. 确认卡片顶部不再显示“高亮解释/文本批注”和页码，只显示评论内容。
-7. 鼠标悬停卡片，确认卡片轻微向外放大并出现浮起阴影，同时对应引线和 Zotero 原批注同步加重；移开鼠标后恢复。
-8. 点击卡片，确认原批注被 Zotero 选中并定位；点击原批注，确认对应卡片边框高亮。
-9. 在卡片输入中文，等待 700 ms；关闭再打开 PDF，确认内容仍在 Zotero 原批注中。
-10. 确认卡片中没有“保存”按钮，并测试 `Ctrl + Enter` 立即保存、`Esc` 取消以及失焦保存。
-11. 为评论输入四行以上内容，失焦后确认只预览三行且末尾有省略号；点击预览后确认完整编辑框展开。
-12. 将 PDF 缩放到 80% 以下，确认卡片保持固定字号并折叠为一行；恢复到 80% 以上后确认恢复三行预览。
-13. 对没有评论的高亮右键，选择“在页边显示/编辑评论”，输入内容并保存。
-14. 新建一个 Zotero 独立便签，确认空卡片随即出现并可写详细内容。
-15. 连续快速放大和缩小 PDF，确认卡片与引线逐帧跟随页面，不短暂串位、不消失、不闪烁；再测试旋转、窗口调整和翻页，确认引线仍指向正确位置。
-16. 点击工具栏按钮隐藏和重新显示卡片；重启 Zotero 后确认开关状态保留。
-17. 切换深色模式，确认卡片和文本框可读。
-18. 测试只读组库批注，确认卡片显示“只读”且不可修改。
-19. 禁用并重新启用插件，确认工具栏按钮、覆盖层和事件没有重复。
-20. 分别打开“有旁注”和“无旁注”的 PDF，连续放大、缩小，确认两种情况的缩放中心都始终位于页面中线。
-21. 在 Zotero 原生批注筛选中按颜色、标签或搜索词过滤，确认被过滤的批注及对应旁注同时隐藏；清除筛选后两者同时恢复。
-22. 打开 Zotero“编辑 → 设置 → 页边批注”，依次取消高亮、下划线、便签、文字批注和图片/区域的勾选，确认对应类型立即隐藏；重新勾选后立即恢复。关闭并重新打开 Zotero，确认各类型的选择被保留，且 Reader 工具栏中不再出现设置齿轮。
-23. 在“编辑 → 设置 → 页边批注 → 阅读器外观”中开启“缩小便签图标”，确认说明文字包含强版本依赖提示；所有已打开 PDF 的原生便签图标应立即从 24 像素缩小到约 14 像素，只能在缩小后的图标范围内选中和拖动，引线圆点落在图标上边缘；缩放、旋转后仍保持对齐。关闭后应立即恢复原始图标和点选范围，重启 Zotero 后选择仍被保留。
+Record the operating system and Zotero version with each run. The first release targets Zotero 9.
+
+## Bootstrap behavior
+
+- Install the versioned Margin Markdown XPI through Zotero's Plugins pane and restart Zotero.
+- Confirm the plugin is named **Margin Markdown** and has its own preference pane.
+- Open a PDF with highlights and comments; confirm cards appear on both margin sides with leader lines to their annotations.
+- Check zoom, rotation, page changes, card hover, native annotation hover, and toolbar visibility toggle.
+- Edit a comment; confirm the 700 ms background save, `Cmd/Ctrl + Enter`, `Esc`, click-away save, selection, and read-only behavior.
+- Create a dense set of comments; check overflow expansion, scrolling, and leader-line positions.
+- Switch Zotero's light and dark themes and change annotation type filters.
+
+## Markdown and math preview
+
+Use this source as an annotation comment:
+
+````markdown
+### Why can this be precomputed offline?
+
+The heuristic depends on the vehicle's relative pose:
+
+\[
+(\Delta x, \Delta y, \Delta \theta)
+\]
+
+Therefore:
+
+1. Fix the goal at $(0,0,0)$.
+2. Precompute the cost-to-go.
+
+> The obstacle map is handled separately.
+
+Inline math: $h(n)$.
+
+```text
+world frame -> goal frame -> lookup table
+```
+````
+
+- Confirm headings, emphasis, lists, quote, code, inline math, and display math render at a compact size.
+- Click the card body and confirm the editor contains the exact Markdown source, including backslashes and blank lines.
+- Type a longer note; confirm autosave does not exit editing and the stored comment remains source text.
+- Click away and reopen; confirm the source round-trips without HTML markup or whitespace loss.
+- Click a rendered link; confirm it opens externally without entering edit mode or navigating the PDF reader.
+- Test malformed math, raw HTML, a tall equation, a long code line, and a dense group of Markdown comments.
+- Disable Markdown and math rendering individually, adjust preview and math sizes, and confirm changes do not modify stored comments.
+- Disconnect the network and reopen the PDF; confirm local KaTeX fonts still render.
+
+## Remaining platform checks
+
+- Install, restart, and exercise the XPI on macOS, Windows, and Linux Zotero 9 builds.
+- Verify Zotero 10 only after a separate compatibility implementation is added.

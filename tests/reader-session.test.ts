@@ -16,6 +16,7 @@ describe("ReaderSession", () => {
           copyTextToClipboard: vi.fn(),
         },
       },
+      launchURL: vi.fn(),
     });
   });
 
@@ -116,7 +117,7 @@ describe("ReaderSession", () => {
         itemID: 21,
         key: "COMMENT1",
         type: "highlight",
-        comment: "原有解释",
+        comment: "[论文](https://example.org/paper)",
         color: "#ffd400",
         pageLabel: "1",
         position: { pageIndex: 0, rects: [[10, 180, 250, 200]] },
@@ -278,18 +279,21 @@ describe("ReaderSession", () => {
     // Zotero can notify about annotations before the Reader adapter is ready.
     // This must cache the data without trying to touch the PDF DOM prematurely.
     await expect(session.refresh(true)).resolves.toBeUndefined();
-    expect(document.querySelector(".zmc-page-overlay")).toBeNull();
+    expect(document.querySelector(".zmm-page-overlay")).toBeNull();
     releaseReaderInit();
     await starting;
-    expect(document.querySelectorAll(".zmc-card")).toHaveLength(4);
-    expect(document.querySelectorAll(".zmc-card-left")).toHaveLength(3);
-    expect(document.querySelectorAll(".zmc-card-right")).toHaveLength(1);
-    expect(document.querySelectorAll(".zmc-line")).toHaveLength(3);
-    expect(document.querySelector(".zmc-card-header")).toBeNull();
-    expect(document.querySelector(".zmc-save-button")).toBeNull();
-    expect(document.querySelector(".zmc-page-overlay.zmc-low-zoom")).not.toBeNull();
-    expect(document.getElementById("zmc-pdf-styles")?.textContent).toContain(
+    expect(document.querySelectorAll(".zmm-card")).toHaveLength(4);
+    expect(document.querySelectorAll(".zmm-card-left")).toHaveLength(3);
+    expect(document.querySelectorAll(".zmm-card-right")).toHaveLength(1);
+    expect(document.querySelectorAll(".zmm-line")).toHaveLength(3);
+    expect(document.querySelector(".zmm-card-header")).toBeNull();
+    expect(document.querySelector(".zmm-save-button")).toBeNull();
+    expect(document.querySelector(".zmm-page-overlay.zmm-low-zoom")).not.toBeNull();
+    expect(document.getElementById("zmm-pdf-styles")?.textContent).toContain(
       "padding-inline",
+    );
+    expect(document.getElementById("zmm-katex-styles")?.textContent).toContain(
+      "data:font/woff2;base64,",
     );
 
     const originalDrawNote = rendererPrototype._drawNote;
@@ -327,7 +331,7 @@ describe("ReaderSession", () => {
     ).toBeNull();
     expect(
       document
-        .querySelector('.zmc-line[data-annotation-key="NOTE0001"]')
+        .querySelector('.zmm-line[data-annotation-key="NOTE0001"]')
         ?.getAttribute("points"),
     ).toMatch(/^319,105 /);
     session.setCompactNoteIcons(false);
@@ -336,20 +340,20 @@ describe("ReaderSession", () => {
     expect(viewPrototype.getSelectedAnnotationAction).toBe(originalSelectedAction);
 
     session.setVisibleTypes(new Set(["note"]));
-    expect(document.querySelectorAll(".zmc-card")).toHaveLength(1);
+    expect(document.querySelectorAll(".zmm-card")).toHaveLength(1);
     expect(document.querySelector('[data-annotation-key="NOTE0001"]')).not.toBeNull();
     session.setVisibleTypes(new Set());
-    expect(document.querySelector(".zmc-page-overlay")).toBeNull();
-    expect(viewer.classList.contains("zmc-viewer")).toBe(false);
+    expect(document.querySelector(".zmm-page-overlay")).toBeNull();
+    expect(viewer.classList.contains("zmm-viewer")).toBe(false);
     session.setVisibleTypes(new Set(MARGIN_ANNOTATION_TYPES));
-    expect(document.querySelectorAll(".zmc-card")).toHaveLength(4);
+    expect(document.querySelectorAll(".zmm-card")).toHaveLength(4);
 
-    const originalOverlay = document.querySelector(".zmc-page-overlay")!;
+    const originalOverlay = document.querySelector(".zmm-page-overlay")!;
     const originalCard = document.querySelector(
-      '.zmc-card[data-annotation-key="COMMENT1"]',
+      '.zmm-card[data-annotation-key="COMMENT1"]',
     )!;
     expect(page.contains(originalOverlay)).toBe(false);
-    expect(originalOverlay.parentElement?.classList.contains("zmc-overlay-root")).toBe(true);
+    expect(originalOverlay.parentElement?.classList.contains("zmm-overlay-root")).toBe(true);
     expect(originalOverlay.parentElement?.parentElement).toBe(viewerContainer);
     expect(viewerContainer.contains(originalOverlay)).toBe(true);
     expect((originalOverlay as HTMLElement).style.left).toBe("300px");
@@ -365,38 +369,38 @@ describe("ReaderSession", () => {
     layoutHandlers.get("scalechanging")!();
     await vi.advanceTimersByTimeAsync(20);
     expect(viewerContainer.scrollLeft).toBe(60);
-    expect(document.querySelector(".zmc-page-overlay")).toBe(originalOverlay);
+    expect(document.querySelector(".zmm-page-overlay")).toBe(originalOverlay);
     expect(
-      document.querySelector('.zmc-card[data-annotation-key="COMMENT1"]'),
+      document.querySelector('.zmm-card[data-annotation-key="COMMENT1"]'),
     ).toBe(originalCard);
-    expect(originalOverlay.classList.contains("zmc-low-zoom")).toBe(false);
+    expect(originalOverlay.classList.contains("zmm-low-zoom")).toBe(false);
     expect((originalOverlay as HTMLElement).style.width).toBe("720px");
     expect(
       document
-        .querySelector('.zmc-line[data-annotation-key="COMMENT1"]')
+        .querySelector('.zmm-line[data-annotation-key="COMMENT1"]')
         ?.getAttribute("points"),
     ).toMatch(/^12,20 /);
 
     const secondCommentCard = document.querySelector<HTMLElement>(
-      '.zmc-card[data-annotation-key="COMMENT2"]',
+      '.zmm-card[data-annotation-key="COMMENT2"]',
     )!;
     await internalReader._annotationManager.setFilter({
       hiddenIDs: ["COMMENT2"],
     });
     await vi.advanceTimersByTimeAsync(120);
     expect(
-      document.querySelector('.zmc-card[data-annotation-key="COMMENT2"]'),
+      document.querySelector('.zmm-card[data-annotation-key="COMMENT2"]'),
     ).toBe(secondCommentCard);
-    expect(secondCommentCard.classList.contains("zmc-filtered")).toBe(true);
-    expect(document.querySelectorAll(".zmc-card:not(.zmc-filtered)")).toHaveLength(3);
+    expect(secondCommentCard.classList.contains("zmm-filtered")).toBe(true);
+    expect(document.querySelectorAll(".zmm-card:not(.zmm-filtered)")).toHaveLength(3);
 
     await internalReader._annotationManager.setFilter({ hiddenIDs: [] });
     await vi.advanceTimersByTimeAsync(120);
-    expect(document.querySelectorAll(".zmc-card")).toHaveLength(4);
+    expect(document.querySelectorAll(".zmm-card")).toHaveLength(4);
     expect(
-      document.querySelector('.zmc-card[data-annotation-key="COMMENT2"]'),
+      document.querySelector('.zmm-card[data-annotation-key="COMMENT2"]'),
     ).toBe(secondCommentCard);
-    expect(secondCommentCard.classList.contains("zmc-filtered")).toBe(false);
+    expect(secondCommentCard.classList.contains("zmm-filtered")).toBe(false);
 
     viewport.width = 720;
     viewportScaleX = 1.2;
@@ -404,112 +408,119 @@ describe("ReaderSession", () => {
     await vi.advanceTimersByTimeAsync(80);
     expect(
       document
-        .querySelector('.zmc-line[data-annotation-key="COMMENT1"]')
+        .querySelector('.zmm-line[data-annotation-key="COMMENT1"]')
         ?.getAttribute("points"),
     ).toMatch(/^12,20 /);
 
     const leftColumn = document.querySelector<HTMLElement>(
-      ".zmc-margin-column-left",
+      ".zmm-margin-column-left",
     )!;
     const overflowToggle = leftColumn.querySelector<HTMLButtonElement>(
-      ".zmc-margin-toggle",
+      ".zmm-margin-toggle",
     )!;
     expect(overflowToggle.textContent).toContain("还有 1 条");
-    expect(leftColumn.querySelectorAll(".zmc-overflow-hidden")).toHaveLength(1);
+    expect(leftColumn.querySelectorAll(".zmm-overflow-hidden")).toHaveLength(1);
     overflowToggle.click();
-    expect(leftColumn.classList.contains("zmc-margin-expanded")).toBe(true);
-    expect(leftColumn.querySelectorAll(".zmc-overflow-hidden")).toHaveLength(0);
+    expect(leftColumn.classList.contains("zmm-margin-expanded")).toBe(true);
+    expect(leftColumn.querySelectorAll(".zmm-overflow-hidden")).toHaveLength(0);
     const scrollport = leftColumn.querySelector<HTMLElement>(
-      ".zmc-margin-scrollport",
+      ".zmm-margin-scrollport",
     )!;
     scrollport.scrollTop = 50;
     scrollport.dispatchEvent(new Event("scroll"));
-    expect(document.querySelectorAll(".zmc-line")).toHaveLength(4);
+    expect(document.querySelectorAll(".zmm-line")).toHaveLength(4);
     overflowToggle.click();
-    expect(leftColumn.classList.contains("zmc-margin-expanded")).toBe(false);
+    expect(leftColumn.classList.contains("zmm-margin-expanded")).toBe(false);
 
     const commentCard = document.querySelector<HTMLElement>(
-      '.zmc-card[data-annotation-key="COMMENT1"]',
+      '.zmm-card[data-annotation-key="COMMENT1"]',
     )!;
     commentCard.dispatchEvent(new Event("pointerenter"));
-    expect(commentCard.classList.contains("zmc-hovered")).toBe(true);
+    expect(commentCard.classList.contains("zmm-hovered")).toBe(true);
     expect(
       document.querySelector(
-        '.zmc-line[data-annotation-key="COMMENT1"].zmc-hovered',
+        '.zmm-line[data-annotation-key="COMMENT1"].zmm-hovered',
       ),
     ).not.toBeNull();
-    expect(nativeAnnotation.classList.contains("zmc-native-hover")).toBe(true);
+    expect(nativeAnnotation.classList.contains("zmm-native-hover")).toBe(true);
     commentCard.dispatchEvent(new Event("pointerleave"));
-    expect(nativeAnnotation.classList.contains("zmc-native-hover")).toBe(false);
+    expect(nativeAnnotation.classList.contains("zmm-native-hover")).toBe(false);
 
-    const preview = document.querySelector<HTMLButtonElement>(
-      '[data-annotation-key="COMMENT1"] .zmc-card-preview',
+    const preview = document.querySelector<HTMLDivElement>(
+      '[data-annotation-key="COMMENT1"] .zmm-card-preview',
     )!;
+    const paperLink = preview.querySelector<HTMLAnchorElement>("a")!;
+    paperLink.click();
+    expect((Zotero as any).launchURL).toHaveBeenCalledWith("https://example.org/paper");
+    expect(commentCard.classList.contains("zmm-editing")).toBe(false);
     preview.click();
-    const editor = document.querySelector<HTMLElement>(
-      '[data-annotation-key="COMMENT1"] .zmc-card-editor',
+    const editor = document.querySelector<HTMLTextAreaElement>(
+      '[data-annotation-key="COMMENT1"] .zmm-card-editor',
     )!;
-    expect(editor.classList.contains("zmc-editor-hidden")).toBe(false);
-    expect(editor.getAttribute("contenteditable")).toBe("true");
+    expect(editor.classList.contains("zmm-editor-hidden")).toBe(false);
+    expect(editor.readOnly).toBe(false);
+    expect(editor.value).toBe(annotations[0].comment);
     const navigateCallsBeforeEditorPointer = reader.navigate.mock.calls.length;
-    const selection = document.getSelection()!;
-    const range = document.createRange();
-    range.setStart(editor.firstChild!, 0);
-    range.setEnd(editor.firstChild!, 4);
-    selection.removeAllRanges();
-    selection.addRange(range);
+    editor.setSelectionRange(0, 4);
     editor.dispatchEvent(new Event("pointerdown", { bubbles: true }));
     editor.dispatchEvent(new Event("mousedown", { bubbles: true }));
     expect(reader.navigate).toHaveBeenCalledTimes(navigateCallsBeforeEditorPointer);
-    expect(selection.toString()).toHaveLength(4);
-    expect(document.getElementById("zmc-pdf-styles")?.textContent).toContain(
+    expect(editor.value.slice(editor.selectionStart, editor.selectionEnd)).toHaveLength(4);
+    expect(document.getElementById("zmm-pdf-styles")?.textContent).toContain(
       "user-select: text !important",
     );
-    expect(document.getElementById("zmc-pdf-styles")?.textContent).toContain(
+    expect(document.getElementById("zmm-pdf-styles")?.textContent).toContain(
       "background: Highlight !important",
     );
-    const selectedText = selection.toString();
-    const clipboardData = { setData: vi.fn() };
-    const copyEvent = new Event("copy", { bubbles: true, cancelable: true });
-    Object.defineProperty(copyEvent, "clipboardData", { value: clipboardData });
-    editor.dispatchEvent(copyEvent);
-    expect(copyEvent.defaultPrevented).toBe(true);
-    expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", selectedText);
-
     const execCommand = vi.fn(() => true);
     (document as any).execCommand = execCommand;
     editor.dispatchEvent(
       new KeyboardEvent("keydown", { key: "c", ctrlKey: true, bubbles: true }),
     );
-    expect((Zotero as any).Utilities.Internal.copyTextToClipboard).toHaveBeenLastCalledWith(
-      selectedText,
-    );
     expect(execCommand).not.toHaveBeenCalledWith("copy", false, null);
-    editor.textContent = "修改后的解释";
+    const markdownSource = "## 修改后的解释\n\n留住空行与公式：\\[f(x)=x^2\\]";
+    editor.value = markdownSource;
     editor.dispatchEvent(new Event("input", { bubbles: true }));
     editor.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true }),
     );
     await Promise.resolve();
     await Promise.resolve();
-    expect(store.saveComment).toHaveBeenCalledWith(21, "修改后的解释");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.saveComment).toHaveBeenCalledWith(21, markdownSource);
+    expect(commentCard.classList.contains("zmm-editing")).toBe(false);
 
-    const noteEditor = document.querySelector<HTMLElement>(
-      '[data-annotation-key="NOTE0001"] .zmc-card-editor',
+    const notePreview = document.querySelector<HTMLDivElement>(
+      '[data-annotation-key="NOTE0001"] .zmm-card-preview',
     )!;
-    noteEditor.textContent = "自动保存的独立评论";
+    notePreview.click();
+    const noteEditor = document.querySelector<HTMLTextAreaElement>(
+      '[data-annotation-key="NOTE0001"] .zmm-card-editor',
+    )!;
+    const autosavedSource = "**自动保存**\n\n$h(n)$";
+    noteEditor.value = autosavedSource;
     noteEditor.dispatchEvent(new Event("input", { bubbles: true }));
     await vi.advanceTimersByTimeAsync(700);
-    expect(store.saveComment).toHaveBeenCalledWith(22, "自动保存的独立评论");
+    expect(store.saveComment).toHaveBeenCalledWith(22, autosavedSource);
+    expect(noteEditor.classList.contains("zmm-editor-hidden")).toBe(false);
+
+    noteEditor.value = "未保存的草稿";
+    noteEditor.dispatchEvent(new Event("input", { bubbles: true }));
+    noteEditor.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    expect(noteEditor.value).toBe(autosavedSource);
+    expect(store.saveComment).not.toHaveBeenCalledWith(22, "未保存的草稿");
 
     annotations.splice(0);
     await session.refresh(true);
-    expect(viewer.classList.contains("zmc-viewer")).toBe(false);
-    expect(document.querySelector(".zmc-overlay-root")).toBeNull();
-    expect(document.querySelector(".zmc-page-overlay")).toBeNull();
+    expect(viewer.classList.contains("zmm-viewer")).toBe(false);
+    expect(document.querySelector(".zmm-overlay-root")).toBeNull();
+    expect(document.querySelector(".zmm-page-overlay")).toBeNull();
 
     session.destroy();
-    expect(document.querySelector(".zmc-page-overlay")).toBeNull();
+    expect(document.querySelector(".zmm-page-overlay")).toBeNull();
     expect(internalReader._updateState).toBe(nativeUpdateState);
   });
 });

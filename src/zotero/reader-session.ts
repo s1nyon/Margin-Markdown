@@ -13,12 +13,12 @@ import {
   type MarginAnnotationType,
   type PageAnchor,
 } from "../core/types";
-import { AnnotationStore } from "./annotation-store";
 import {
-  readStoredComment,
-  renderStoredComment,
-  selectEditorContents,
-} from "./rich-text-editor";
+  renderMarkdown,
+  type RenderingPreferences,
+} from "../rendering/renderer";
+import { KATEX_CSS } from "../rendering/katex-styles.generated";
+import { AnnotationStore } from "./annotation-store";
 import {
   type PdfPageHandle,
   Zotero9ReaderAdapter,
@@ -26,7 +26,8 @@ import {
 import { PDF_STYLES } from "./styles";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const STYLE_ID = "zmc-pdf-styles";
+const STYLE_ID = "zmm-pdf-styles";
+const KATEX_STYLE_ID = "zmm-katex-styles";
 const CARD_WIDTH = 264;
 const CARD_GAP_FROM_PAGE = 24;
 const MARGIN_EXTENT = CARD_WIDTH + CARD_GAP_FROM_PAGE;
@@ -36,6 +37,13 @@ const CARD_GAP = 8;
 const SUMMARY_HEIGHT = 34;
 const EXPANDED_TOP_PADDING = 48;
 const FILTER_UI_SETTLE_MS = 80;
+const DEFAULT_RENDERING_PREFERENCES: RenderingPreferences = {
+  markdown: true,
+  latex: true,
+  previewFontSize: 100,
+  mathScale: 100,
+  compactHeadings: true,
+};
 
 type MarginSide = PageAnchor["side"];
 
@@ -43,9 +51,11 @@ interface CardRuntime {
   annotation: MarginAnnotation;
   anchor: PageAnchor;
   card: HTMLElement;
-  preview: HTMLButtonElement;
-  editor: HTMLElement;
+  preview: HTMLDivElement;
+  editor: HTMLTextAreaElement;
   state: HTMLElement;
+  expandButton: HTMLButtonElement;
+  previewExpanded: boolean;
   originalValue: string;
   currentValue: string;
   dirty: boolean;
@@ -85,6 +95,9 @@ export class ReaderSession {
   private activeKey?: string;
   private hoveredKey?: string;
   private compactNoteIcons = false;
+  private renderingPreferences: RenderingPreferences = {
+    ...DEFAULT_RENDERING_PREFERENCES,
+  };
   private enabled = true;
   private started = false;
   private adapterReady = false;
@@ -155,6 +168,24 @@ export class ReaderSession {
     if (this.adapterReady) {
       this.syncCompactNoteIcons();
       if (this.enabled) this.render();
+    }
+  }
+
+  setRenderingPreferences(preferences: RenderingPreferences): void {
+    if (
+      this.renderingPreferences.markdown === preferences.markdown
+      && this.renderingPreferences.latex === preferences.latex
+      && this.renderingPreferences.previewFontSize === preferences.previewFontSize
+      && this.renderingPreferences.mathScale === preferences.mathScale
+      && this.renderingPreferences.compactHeadings === preferences.compactHeadings
+    ) return;
+
+    this.renderingPreferences = { ...preferences };
+    for (const runtime of this.cardRuntimes()) {
+      this.applyRenderingPreferences(runtime);
+      this.updatePreview(runtime);
+      runtime.measuredHeight = undefined;
+      this.relayoutRuntime(runtime);
     }
   }
 
@@ -236,7 +267,7 @@ export class ReaderSession {
         && shouldDisplayAnnotation(annotation, this.forcedKeys),
     );
     const hasDisplayableAnnotations = displayable.length > 0;
-    viewer.classList.toggle("zmc-viewer", hasDisplayableAnnotations);
+    viewer.classList.toggle("zmm-viewer", hasDisplayableAnnotations);
     if (hasDisplayableAnnotations) {
       this.ensureOverlayRoot(doc, viewer);
     } else {
@@ -319,13 +350,13 @@ export class ReaderSession {
       left: this.createMarginColumn(doc, "left"),
       right: this.createMarginColumn(doc, "right"),
     };
-    overlay.className = "zmc-page-overlay";
-    overlay.classList.toggle("zmc-low-zoom", handle.scale < COLLAPSE_SCALE_THRESHOLD);
-    lines.classList.add("zmc-line-layer");
-    cards.className = "zmc-card-layer";
+    overlay.className = "zmm-page-overlay";
+    overlay.classList.toggle("zmm-low-zoom", handle.scale < COLLAPSE_SCALE_THRESHOLD);
+    lines.classList.add("zmm-line-layer");
+    cards.className = "zmm-card-layer";
     cards.append(columns.left.root, columns.right.root);
     overlay.append(lines, cards);
-    handle.element.classList.add("zmc-page");
+    handle.element.classList.add("zmm-page");
     this.overlayRoot?.append(overlay);
 
     const mounted: MountedPage = {
@@ -352,7 +383,7 @@ export class ReaderSession {
       if (!anchor) continue;
       const runtime = this.createCard(doc, annotation, anchor, handle.pageIndex);
       runtime.card.classList.toggle(
-        "zmc-filtered",
+        "zmm-filtered",
         !this.isNativeAnnotationVisible(annotation.key),
       );
       mounted.runtimes.push(runtime);
@@ -390,7 +421,7 @@ export class ReaderSession {
 
     mounted.handle = handle;
     mounted.overlay.classList.toggle(
-      "zmc-low-zoom",
+      "zmm-low-zoom",
       handle.scale < COLLAPSE_SCALE_THRESHOLD,
     );
     for (const runtime of mounted.runtimes) {
@@ -401,15 +432,15 @@ export class ReaderSession {
       runtime.annotation = entry.annotation;
       runtime.anchor = entry.anchor;
       if (previousSide !== entry.anchor.side) {
-        runtime.card.classList.toggle("zmc-card-left", entry.anchor.side === "left");
-        runtime.card.classList.toggle("zmc-card-right", entry.anchor.side === "right");
+        runtime.card.classList.toggle("zmm-card-left", entry.anchor.side === "left");
+        runtime.card.classList.toggle("zmm-card-right", entry.anchor.side === "right");
         mounted.columns[entry.anchor.side].content.append(runtime.card);
       }
 
       if (annotationChanged) {
-        runtime.card.style.setProperty("--zmc-color", entry.annotation.color);
-        runtime.editor.contentEditable = String(!entry.annotation.readOnly);
-        runtime.editor.dataset.placeholder =
+        runtime.card.style.setProperty("--zmm-color", entry.annotation.color);
+        runtime.editor.readOnly = entry.annotation.readOnly;
+        runtime.editor.placeholder =
           entry.annotation.type === "note"
             ? "点击输入独立评论…"
             : "点击输入划线解释…";
@@ -431,7 +462,7 @@ export class ReaderSession {
 
       if (!runtime.dirty && runtime.currentValue !== entry.annotation.comment) {
         runtime.currentValue = entry.annotation.comment;
-        this.renderComment(runtime.editor, entry.annotation.comment);
+        runtime.editor.value = entry.annotation.comment;
         runtime.originalValue = entry.annotation.comment;
         this.updatePreview(runtime);
         this.resizeEditor(runtime.editor);
@@ -454,11 +485,11 @@ export class ReaderSession {
     const scrollport = doc.createElement("div");
     const content = doc.createElement("div");
     const toggle = doc.createElement("button");
-    root.className = `zmc-margin-column zmc-margin-column-${side}`;
-    scrollport.className = "zmc-margin-scrollport";
-    content.className = "zmc-margin-content";
+    root.className = `zmm-margin-column zmm-margin-column-${side}`;
+    scrollport.className = "zmm-margin-scrollport";
+    content.className = "zmm-margin-content";
     toggle.type = "button";
-    toggle.className = "zmc-margin-toggle";
+    toggle.className = "zmm-margin-toggle";
     toggle.hidden = true;
     scrollport.append(content);
     root.append(scrollport, toggle);
@@ -468,7 +499,7 @@ export class ReaderSession {
   private toggleMargin(mounted: MountedPage, side: MarginSide): void {
     const key = this.marginStateKey(mounted.handle.pageIndex, side);
     const column = mounted.columns[side];
-    if (column.root.classList.contains("zmc-margin-expanded")) {
+    if (column.root.classList.contains("zmm-margin-expanded")) {
       this.expandedMargins.delete(key);
       const activeEditor = mounted.runtimes.find(
         (runtime) =>
@@ -494,36 +525,40 @@ export class ReaderSession {
     pageIndex: number,
   ): CardRuntime {
     const card = doc.createElement("article");
-    const preview = doc.createElement("button");
-    const editor = doc.createElement("div");
+    const preview = doc.createElement("div");
+    const editor = doc.createElement("textarea");
     const footer = doc.createElement("footer");
     const state = doc.createElement("span");
+    const expandButton = doc.createElement("button");
 
-    card.className = `zmc-card zmc-card-${anchor.side}`;
+    card.className = `zmm-card zmm-card-${anchor.side}`;
     card.dataset.annotationKey = annotation.key;
-    card.style.setProperty("--zmc-color", annotation.color);
+    card.style.setProperty("--zmm-color", annotation.color);
     const annotationLabel = typeLabel(annotation.type);
-    preview.type = "button";
-    preview.className = "zmc-card-preview";
+    preview.className = "zmm-card-preview";
+    preview.setAttribute("role", "group");
+    preview.tabIndex = 0;
     preview.setAttribute(
       "aria-label",
       `${annotation.readOnly ? "查看" : "编辑"}${annotationLabel}，第 ${annotation.pageLabel || pageIndex + 1} 页`,
     );
-    editor.className = "zmc-card-editor zmc-editor-hidden";
-    editor.contentEditable = String(!annotation.readOnly);
-    editor.dataset.placeholder = annotation.type === "note" ? "点击输入独立评论…" : "点击输入划线解释…";
+    editor.className = "zmm-card-editor zmm-editor-hidden";
+    editor.readOnly = annotation.readOnly;
+    editor.placeholder = annotation.type === "note" ? "点击输入独立评论…" : "点击输入划线解释…";
     editor.spellcheck = false;
     editor.dir = "auto";
-    editor.setAttribute("role", "textbox");
     editor.setAttribute("aria-multiline", "true");
     editor.setAttribute("aria-readonly", String(annotation.readOnly));
     editor.setAttribute("aria-label", `${annotationLabel}，第 ${annotation.pageLabel || pageIndex + 1} 页`);
-    this.renderComment(editor, annotation.comment);
-    footer.className = "zmc-card-footer";
-    state.className = "zmc-save-state";
+    editor.value = annotation.comment;
+    footer.className = "zmm-card-footer";
+    state.className = "zmm-save-state";
     state.textContent = annotation.readOnly ? "只读" : "";
+    expandButton.type = "button";
+    expandButton.className = "zmm-preview-expand";
+    expandButton.hidden = true;
 
-    footer.append(state);
+    footer.append(state, expandButton);
     card.append(preview, editor, footer);
 
     const runtime: CardRuntime = {
@@ -533,28 +568,50 @@ export class ReaderSession {
       preview,
       editor,
       state,
+      expandButton,
+      previewExpanded: false,
       originalValue: annotation.comment,
       currentValue: annotation.comment,
       dirty: false,
       saving: false,
     };
     this.updatePreview(runtime);
-    card.classList.toggle("zmc-hovered", this.hoveredKey === annotation.key);
+    card.classList.toggle("zmm-hovered", this.hoveredKey === annotation.key);
 
     card.addEventListener("pointerenter", () =>
       this.setHovered(runtime.annotation.key),
     );
     card.addEventListener("pointerleave", () => this.setHovered());
-    card.addEventListener("pointerdown", () => {
+    card.addEventListener("pointerdown", (event) => {
+      if ((event.target as Element).closest("a, button, textarea")) return;
       this.setActive(runtime.annotation.key);
       this.adapter.selectAnnotation(runtime.annotation.key);
     });
-    preview.addEventListener("click", () => {
+    preview.addEventListener("click", (event) => {
+      const link = (event.target as Element).closest<HTMLAnchorElement>("a[href]");
+      if (link && preview.contains(link)) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.openExternalLink(link.href);
+        return;
+      }
       if (!runtime.annotation.readOnly) this.openEditor(runtime);
+    });
+    preview.addEventListener("keydown", (event) => {
+      if (event.target !== preview || !["Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      if (!runtime.annotation.readOnly) this.openEditor(runtime);
+    });
+    expandButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      runtime.previewExpanded = !runtime.previewExpanded;
+      runtime.measuredHeight = undefined;
+      this.updatePreview(runtime);
+      this.relayoutRuntime(runtime);
     });
     editor.addEventListener("focus", () => {
       this.setActive(runtime.annotation.key);
-      (doc as any).execCommand?.("defaultParagraphSeparator", false, "br");
     });
     // Keep text editing inside the card. Letting these events bubble to the
     // card would call selectAnnotation(), which navigates the PDF on every
@@ -570,42 +627,17 @@ export class ReaderSession {
     ]) {
       editor.addEventListener(eventName, (event) => event.stopPropagation());
     }
-    const editorSelection = (): Selection | undefined => {
-      const selection = doc.defaultView?.getSelection();
-      if (
-        !selection
-        || selection.isCollapsed
-        || !selection.anchorNode
-        || !selection.focusNode
-        || !editor.contains(selection.anchorNode)
-        || !editor.contains(selection.focusNode)
-      ) {
-        return undefined;
-      }
-      return selection;
-    };
-    editor.addEventListener("copy", (event) => {
-      const selection = editorSelection();
-      if (!selection) return;
-      event.stopPropagation();
-      const text = selection.toString();
-      const copied = this.copyTextToClipboard(text);
-      if (event.clipboardData) {
-        event.clipboardData.setData("text/plain", text);
-      }
-      if (copied || event.clipboardData) event.preventDefault();
-    });
+    editor.addEventListener("copy", (event) => event.stopPropagation());
     editor.addEventListener("cut", (event) => event.stopPropagation());
     editor.addEventListener("paste", (event) => event.stopPropagation());
     editor.addEventListener("input", () => {
       if (runtime.annotation.readOnly) return;
-      runtime.currentValue = this.readComment(editor);
+      runtime.currentValue = editor.value;
       runtime.dirty = runtime.currentValue !== runtime.originalValue;
       if (runtime.statusTimer) clearTimeout(runtime.statusTimer);
       runtime.statusTimer = undefined;
       runtime.state.dataset.error = "false";
       runtime.state.textContent = runtime.dirty ? "未保存" : "";
-      this.updatePreview(runtime);
       this.resizeEditor(editor);
       runtime.measuredHeight = undefined;
       const mounted = this.mountedPages.get(pageIndex);
@@ -615,42 +647,32 @@ export class ReaderSession {
     editor.addEventListener("keydown", (event) => {
       const modifier = (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
       const key = event.key.toLowerCase();
-      const formatCommand = event.key.toLowerCase() === "b"
-        ? "bold"
-        : event.key.toLowerCase() === "i"
-          ? "italic"
+      const formatMarker = key === "b"
+        ? "**"
+        : key === "i"
+          ? "*"
           : undefined;
       if (modifier && key === "a") {
-        event.preventDefault();
         event.stopPropagation();
-        selectEditorContents(editor);
       } else if (modifier && key === "c") {
-        event.preventDefault();
         event.stopPropagation();
-        const selection = editorSelection();
-        if (selection && !this.copyTextToClipboard(selection.toString())) {
-          (doc as any).execCommand?.("copy", false, null);
-        }
-      } else if (modifier && key === "x") {
+      } else if (modifier && ["x", "v", "z", "y"].includes(key)) {
         event.stopPropagation();
-        if (editorSelection() && (doc as any).execCommand?.("cut", false, null)) {
-          event.preventDefault();
-        }
-      } else if (modifier && ["v", "z", "y"].includes(key)) {
         // Keep native paste/undo/redo, but do not let the PDF reader treat
         // the shortcut as a document command.
-        event.stopPropagation();
-      } else if (modifier && formatCommand) {
+      } else if (modifier && formatMarker) {
         event.preventDefault();
         event.stopPropagation();
-        (doc as any).execCommand?.(formatCommand, false, null);
+        wrapMarkdownSelection(editor, formatMarker);
         editor.dispatchEvent(new Event("input", { bubbles: true }));
       } else if (event.key === "Escape") {
         event.preventDefault();
         this.cancelEdit(runtime);
       } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        void this.persist(runtime).then(() => editor.blur());
+        void this.persist(runtime).then((saved) => {
+          if (saved) editor.blur();
+        });
       }
     });
     editor.addEventListener("blur", () => {
@@ -672,11 +694,11 @@ export class ReaderSession {
       const sideRuntimes = mounted.runtimes.filter(
         (runtime) =>
           runtime.anchor.side === side &&
-          !runtime.card.classList.contains("zmc-filtered"),
+          !runtime.card.classList.contains("zmm-filtered"),
       );
       const stateKey = this.marginStateKey(mounted.handle.pageIndex, side);
       const editing = sideRuntimes.some((runtime) =>
-        runtime.card.classList.contains("zmc-editing"),
+        runtime.card.classList.contains("zmm-editing"),
       );
       const requestedExpanded = this.expandedMargins.has(stateKey);
       const runtimeByID = new Map(
@@ -701,8 +723,8 @@ export class ReaderSession {
       if (!result.overflow) this.expandedMargins.delete(stateKey);
       if (!expanded) column.scrollport.scrollTop = 0;
 
-      column.root.classList.toggle("zmc-margin-expanded", expanded);
-      column.root.classList.toggle("zmc-margin-overflow", result.overflow);
+      column.root.classList.toggle("zmm-margin-expanded", expanded);
+      column.root.classList.toggle("zmm-margin-overflow", result.overflow);
       column.toggle.hidden = !result.overflow;
       column.toggle.setAttribute("aria-expanded", String(expanded));
       const toggleText = expanded
@@ -721,7 +743,7 @@ export class ReaderSession {
       const visibleIDs = new Set(result.positions.map((position) => position.id));
       for (const runtime of sideRuntimes) {
         runtime.card.classList.toggle(
-          "zmc-overflow-hidden",
+          "zmm-overflow-hidden",
           !visibleIDs.has(runtime.annotation.key),
         );
       }
@@ -752,7 +774,7 @@ export class ReaderSession {
       const position = mounted.positions.get(runtime.annotation.key);
       if (!position) continue;
       const column = mounted.columns[runtime.anchor.side];
-      const expanded = column.root.classList.contains("zmc-margin-expanded");
+      const expanded = column.root.classList.contains("zmm-margin-expanded");
       const cardY = position.y - (expanded ? column.scrollport.scrollTop : 0);
       const lineEndY = cardY + Math.min(26, position.height / 2);
       if (expanded && (lineEndY < 0 || lineEndY > height)) continue;
@@ -802,8 +824,8 @@ export class ReaderSession {
     let changed = false;
     for (const runtime of mounted.runtimes) {
       const filtered = !this.isNativeAnnotationVisible(runtime.annotation.key);
-      if (runtime.card.classList.contains("zmc-filtered") === filtered) continue;
-      runtime.card.classList.toggle("zmc-filtered", filtered);
+      if (runtime.card.classList.contains("zmm-filtered") === filtered) continue;
+      runtime.card.classList.toggle("zmm-filtered", filtered);
       changed = true;
     }
     if (changed) this.layoutPage(mounted);
@@ -827,17 +849,17 @@ export class ReaderSession {
     const isLeft = runtime.anchor.side === "left";
     const elbowX = isLeft ? -12 : pageWidth + 12;
     const endX = isLeft ? -CARD_GAP_FROM_PAGE : pageWidth + CARD_GAP_FROM_PAGE;
-    line.classList.add("zmc-line");
+    line.classList.add("zmm-line");
     line.dataset.annotationKey = runtime.annotation.key;
-    line.classList.toggle("zmc-hovered", this.hoveredKey === runtime.annotation.key);
+    line.classList.toggle("zmm-hovered", this.hoveredKey === runtime.annotation.key);
     line.setAttribute(
       "points",
       `${runtime.anchor.x},${runtime.anchor.y} ${elbowX},${runtime.anchor.y} ${endX},${endY}`,
     );
     line.setAttribute("stroke", runtime.annotation.color);
-    dot.classList.add("zmc-line-dot");
+    dot.classList.add("zmm-line-dot");
     dot.dataset.annotationKey = runtime.annotation.key;
-    dot.classList.toggle("zmc-hovered", this.hoveredKey === runtime.annotation.key);
+    dot.classList.toggle("zmm-hovered", this.hoveredKey === runtime.annotation.key);
     dot.setAttribute("cx", String(runtime.anchor.x));
     dot.setAttribute("cy", String(runtime.anchor.y));
     dot.setAttribute("r", "2.5");
@@ -853,10 +875,11 @@ export class ReaderSession {
     }, 700);
   }
 
-  private async persist(runtime: CardRuntime): Promise<void> {
+  private async persist(runtime: CardRuntime): Promise<boolean> {
     if (runtime.timer) clearTimeout(runtime.timer);
     runtime.timer = undefined;
-    if (!runtime.dirty || runtime.saving || runtime.annotation.readOnly) return;
+    if (!runtime.dirty) return true;
+    if (runtime.saving || runtime.annotation.readOnly) return false;
 
     const value = runtime.currentValue;
     runtime.saving = true;
@@ -882,11 +905,13 @@ export class ReaderSession {
         }, 1200);
       }
       if (value.trim()) this.forcedKeys.delete(runtime.annotation.key);
+      return !runtime.dirty;
     } catch (error) {
       runtime.dirty = true;
       runtime.state.dataset.error = "true";
       runtime.state.textContent = error instanceof Error ? error.message : "保存失败";
       (Zotero as any).logError?.(error);
+      return false;
     } finally {
       runtime.saving = false;
       if (runtime.dirty && runtime.currentValue !== value) this.queueSave(runtime);
@@ -898,7 +923,7 @@ export class ReaderSession {
     if (runtime.timer) clearTimeout(runtime.timer);
     runtime.timer = undefined;
     runtime.currentValue = runtime.originalValue;
-    this.renderComment(runtime.editor, runtime.originalValue);
+    runtime.editor.value = runtime.originalValue;
     runtime.annotation.comment = runtime.originalValue;
     runtime.dirty = false;
     runtime.state.dataset.error = "false";
@@ -918,20 +943,20 @@ export class ReaderSession {
 
   private openEditor(runtime: CardRuntime, selectAll = false): void {
     if (runtime.annotation.readOnly) return;
-    runtime.card.classList.add("zmc-editing");
-    runtime.preview.classList.add("zmc-preview-hidden");
-    runtime.editor.classList.remove("zmc-editor-hidden");
+    runtime.card.classList.add("zmm-editing");
+    runtime.preview.classList.add("zmm-preview-hidden");
+    runtime.editor.classList.remove("zmm-editor-hidden");
     this.resizeEditor(runtime.editor);
     const mounted = this.mountedPages.get(runtime.annotation.position.pageIndex);
     if (mounted) this.layoutPage(mounted);
     runtime.editor.focus();
-    if (selectAll) selectEditorContents(runtime.editor);
+    if (selectAll) runtime.editor.select();
   }
 
   private closeEditor(runtime: CardRuntime, pageIndex: number): void {
-    runtime.card.classList.remove("zmc-editing");
-    runtime.editor.classList.add("zmc-editor-hidden");
-    runtime.preview.classList.remove("zmc-preview-hidden");
+    runtime.card.classList.remove("zmm-editing");
+    runtime.editor.classList.add("zmm-editor-hidden");
+    runtime.preview.classList.remove("zmm-preview-hidden");
     const mounted = this.mountedPages.get(pageIndex);
     if (mounted) this.layoutPage(mounted);
   }
@@ -939,42 +964,64 @@ export class ReaderSession {
   private updatePreview(runtime: CardRuntime): void {
     const value = runtime.currentValue;
     if (value) {
-      this.renderComment(runtime.preview, value);
+      try {
+        runtime.preview.innerHTML = renderMarkdown(
+          value,
+          runtime.preview.ownerDocument,
+          this.renderingPreferences,
+        );
+      } catch (error) {
+        runtime.preview.textContent = value;
+        (Zotero as any).logError?.(error);
+      }
     } else {
-      runtime.preview.textContent = runtime.editor.dataset.placeholder ?? "";
+      runtime.preview.textContent = runtime.editor.placeholder;
     }
-    runtime.preview.classList.toggle("zmc-empty-preview", !value);
+    runtime.preview.classList.toggle("zmm-empty-preview", !value);
+    runtime.preview.classList.toggle("zmm-preview-expanded", runtime.previewExpanded);
+    runtime.card.classList.toggle(
+      "zmm-compact-headings",
+      this.renderingPreferences.compactHeadings,
+    );
+    runtime.expandButton.hidden = !this.previewNeedsExpand(runtime);
+    runtime.expandButton.textContent = runtime.previewExpanded ? "收起预览" : "展开预览";
+    this.applyRenderingPreferences(runtime);
   }
 
-  private renderComment(root: HTMLElement, value: string): void {
-    try {
-      renderStoredComment(root, value);
-    } catch (error) {
-      // A rich-text compatibility failure must not prevent every annotation
-      // on the page from mounting. Plain text remains editable and visible.
-      root.textContent = value;
-      (Zotero as any).logError?.(error);
-    }
+  private previewNeedsExpand(runtime: CardRuntime): boolean {
+    const preview = runtime.preview;
+    if (runtime.previewExpanded) return true;
+    const height = preview.clientHeight || preview.scrollHeight;
+    return (
+      preview.scrollHeight > height + 2
+      || runtime.currentValue.split("\n").length > 5
+      || runtime.currentValue.length > 220
+    );
   }
 
-  private readComment(root: HTMLElement): string {
-    try {
-      return readStoredComment(root);
-    } catch (error) {
-      (Zotero as any).logError?.(error);
-      return root.textContent?.trim() ?? "";
-    }
+  private applyRenderingPreferences(runtime: CardRuntime): void {
+    runtime.card.style.setProperty(
+      "--zmm-preview-font-size",
+      `${13 * this.renderingPreferences.previewFontSize / 100}px`,
+    );
+    runtime.card.style.setProperty(
+      "--zmm-math-font-size",
+      `${13 * this.renderingPreferences.previewFontSize * this.renderingPreferences.mathScale / 10_000}px`,
+    );
   }
 
-  private copyTextToClipboard(value: string): boolean {
+  private openExternalLink(url: string): void {
     try {
-      const copy = (Zotero as any).Utilities?.Internal?.copyTextToClipboard;
-      if (typeof copy !== "function") return false;
-      copy.call((Zotero as any).Utilities.Internal, value);
-      return true;
+      const parsed = new URL(url);
+      if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) return;
+      const launch = (Zotero as any).launchURL;
+      if (typeof launch === "function") {
+        launch.call(Zotero, parsed.href);
+      } else {
+        this.adapter.document().defaultView?.open(parsed.href, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       (Zotero as any).logError?.(error);
-      return false;
     }
   }
 
@@ -983,8 +1030,9 @@ export class ReaderSession {
     mounted: MountedPage,
   ): number {
     const mode = [
-      mounted.overlay.classList.contains("zmc-low-zoom") ? "low" : "normal",
-      runtime.card.classList.contains("zmc-editing") ? "editing" : "preview",
+      mounted.overlay.classList.contains("zmm-low-zoom") ? "low" : "normal",
+      runtime.card.classList.contains("zmm-editing") ? "editing" : "preview",
+      runtime.previewExpanded ? "expanded" : "collapsed",
       runtime.state.textContent ? "status" : "plain",
     ].join(":");
     if (runtime.measuredHeight === undefined || runtime.heightMode !== mode) {
@@ -999,9 +1047,9 @@ export class ReaderSession {
     if (mounted) this.layoutPage(mounted);
   }
 
-  private resizeEditor(editor: HTMLElement): void {
+  private resizeEditor(editor: HTMLTextAreaElement): void {
     editor.style.height = "0px";
-    const fallback = Math.min(156, Math.max(37, 24 + (editor.textContent ?? "").split("\n").length * 18));
+    const fallback = Math.min(156, Math.max(37, 24 + editor.value.split("\n").length * 18));
     const height = Math.min(156, Math.max(37, editor.scrollHeight || fallback));
     editor.style.height = `${height}px`;
   }
@@ -1019,19 +1067,19 @@ export class ReaderSession {
     if (key) this.adapter.setAnnotationHover(key, true);
 
     for (const runtime of this.cardRuntimes()) {
-      runtime.card.classList.toggle("zmc-hovered", runtime.annotation.key === key);
+      runtime.card.classList.toggle("zmm-hovered", runtime.annotation.key === key);
     }
     const lineElements = Array.from(
-      this.adapter.document().querySelectorAll(".zmc-line, .zmc-line-dot"),
+      this.adapter.document().querySelectorAll(".zmm-line, .zmm-line-dot"),
     ) as unknown as SVGElement[];
     for (const element of lineElements) {
-      element.classList.toggle("zmc-hovered", element.dataset.annotationKey === key);
+      element.classList.toggle("zmm-hovered", element.dataset.annotationKey === key);
     }
   }
 
   private syncActiveCards(): void {
     for (const runtime of this.cardRuntimes()) {
-      runtime.card.classList.toggle("zmc-active", runtime.annotation.key === this.activeKey);
+      runtime.card.classList.toggle("zmm-active", runtime.annotation.key === this.activeKey);
     }
   }
 
@@ -1060,11 +1108,18 @@ export class ReaderSession {
   }
 
   private ensureStyles(doc: Document): void {
-    if (doc.getElementById(STYLE_ID)) return;
-    const style = doc.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = PDF_STYLES;
-    doc.head.append(style);
+    if (!doc.getElementById(KATEX_STYLE_ID)) {
+      const katexStyles = doc.createElement("style");
+      katexStyles.id = KATEX_STYLE_ID;
+      katexStyles.textContent = KATEX_CSS;
+      doc.head.append(katexStyles);
+    }
+    if (!doc.getElementById(STYLE_ID)) {
+      const style = doc.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = PDF_STYLES;
+      doc.head.append(style);
+    }
   }
 
   private ensureOverlayRoot(doc: Document, viewer: HTMLElement): void {
@@ -1073,7 +1128,7 @@ export class ReaderSession {
       ?? viewer;
     if (!this.overlayRoot) {
       this.overlayRoot = doc.createElement("div");
-      this.overlayRoot.className = "zmc-overlay-root";
+      this.overlayRoot.className = "zmm-overlay-root";
     }
     if (this.overlayRoot.parentElement !== host) host.append(this.overlayRoot);
   }
@@ -1135,15 +1190,16 @@ export class ReaderSession {
       if (runtime.statusTimer) clearTimeout(runtime.statusTimer);
     }
     mounted.overlay.remove();
-    mounted.handle.element.classList.remove("zmc-page");
+    mounted.handle.element.classList.remove("zmm-page");
     this.mountedPages.delete(pageIndex);
   }
 
   private removeUi(): void {
     for (const pageIndex of [...this.mountedPages.keys()]) this.unmountPage(pageIndex);
     try {
-      this.adapter.viewerElement().classList.remove("zmc-viewer");
+      this.adapter.viewerElement().classList.remove("zmm-viewer");
       this.adapter.document().getElementById(STYLE_ID)?.remove();
+      this.adapter.document().getElementById(KATEX_STYLE_ID)?.remove();
     } catch {
       // The reader may already be closed.
     }
@@ -1160,6 +1216,17 @@ function typeLabel(type: MarginAnnotation["type"]): string {
     text: "文本批注",
     image: "区域批注",
   }[type];
+}
+
+function wrapMarkdownSelection(editor: HTMLTextAreaElement, marker: string): void {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const selected = editor.value.slice(start, end);
+  editor.setRangeText(`${marker}${selected}${marker}`, start, end, "select");
+  if (!selected) {
+    const cursor = start + marker.length;
+    editor.setSelectionRange(cursor, cursor);
+  }
 }
 
 function measureHeight(card: HTMLElement, value: string): number {

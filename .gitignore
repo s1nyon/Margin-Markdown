@@ -1,5 +1,8 @@
 node_modules/
 build/
+dist/
+addon/content/vendor/
+src/rendering/katex-styles.generated.ts
 *.xpi
 !releases/
 !releases/*.xpi

@@ -1,34 +1,47 @@
 {
-  "name": "zotero-margin-comments",
-  "version": "0.8.6",
+  "name": "margin-markdown",
+  "version": "0.1.0",
   "private": true,
-  "description": "Editable margin comment cards with leader lines for Zotero PDF annotations",
-  "author": "Local Zotero Plugin",
+  "description": "Markdown and LaTeX rendered margin comments for Zotero PDF annotations",
+  "author": "s1nyon",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/XiaoDuComrade/Zotero-margin-comments.git"
+    "url": "git+https://github.com/s1nyon/Margin-Markdown.git"
   },
   "config": {
-    "addonName": "Margin Comments",
-    "addonID": "margin-comments@local.zotero",
-    "addonRef": "margincomments",
-    "addonInstance": "MarginComments",
-    "prefsPrefix": "extensions.zotero.margincomments"
+    "addonName": "Margin Markdown",
+    "addonID": "margin-markdown@s1nyon",
+    "addonRef": "marginmarkdown",
+    "addonInstance": "MarginMarkdown",
+    "prefsPrefix": "extensions.zotero.marginmarkdown"
   },
   "scripts": {
-    "build": "powershell -ExecutionPolicy Bypass -File scripts/build-versioned.ps1",
-    "test": "vitest run",
-    "stress": "vitest run --config vitest.stress.config.ts",
-    "typecheck": "tsc --noEmit",
-    "verify:xpi": "powershell -ExecutionPolicy Bypass -File scripts/verify-xpi.ps1"
+    "build": "node scripts/build.mjs",
+    "package": "node scripts/package.mjs",
+    "test": "node scripts/prepare-renderer.mjs && vitest run",
+    "stress": "node scripts/prepare-renderer.mjs && vitest run --config vitest.stress.config.ts",
+    "typecheck": "node scripts/prepare-renderer.mjs && tsc --noEmit",
+    "verify": "node scripts/verify-xpi.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
+    "adm-zip": "^0.5.18",
     "happy-dom": "^18.0.1",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4",
     "zotero-plugin-scaffold": "^0.6.0",
     "zotero-types": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=22.8.0",
+    "pnpm": ">=11.25.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "dependencies": {
+    "dompurify": "^3.4.16",
+    "katex": "^0.18.9",
+    "markdown-it": "^15.0.2",
+    "markdown-it-texmath": "^1.0.0"
   }
 }

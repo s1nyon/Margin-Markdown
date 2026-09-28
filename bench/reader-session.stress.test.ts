@@ -133,7 +133,7 @@ async function runScenario(count: number): Promise<StressResult> {
   await session.start(true);
   const initialRenderMs = performance.now() - initialStart;
 
-  const stableCard = document.querySelector(".zmc-card");
+  const stableCard = document.querySelector(".zmm-card");
   nativeAnnotations.forEach((annotation, index) => {
     if (index % 2 === 0) annotation._hidden = true;
   });
@@ -157,11 +157,11 @@ async function runScenario(count: number): Promise<StressResult> {
     animationFrames.shift()!(performance.now());
   }
   const filterRestoreMs = performance.now() - filterRestoreStart;
-  expect(document.querySelector(".zmc-card")).toBe(stableCard);
+  expect(document.querySelector(".zmm-card")).toBe(stableCard);
 
   const expandStart = performance.now();
   for (const button of document.querySelectorAll<HTMLButtonElement>(
-    ".zmc-margin-toggle:not([hidden])",
+    ".zmm-margin-toggle:not([hidden])",
   )) {
     button.click();
   }
@@ -169,7 +169,7 @@ async function runScenario(count: number): Promise<StressResult> {
 
   const scrollports = Array.from(
     document.querySelectorAll<HTMLElement>(
-      ".zmc-margin-expanded .zmc-margin-scrollport",
+      ".zmm-margin-expanded .zmm-margin-scrollport",
     ),
   );
   const scrollStart = performance.now();
@@ -202,8 +202,8 @@ async function runScenario(count: number): Promise<StressResult> {
     scrollEventMs: round(scrollEventMs),
     scaleTotalMs: round(scaleTotalMs),
     scaleFrameMs: round(scaleTotalMs / 40),
-    cards: document.querySelectorAll(".zmc-card").length,
-    visibleLines: document.querySelectorAll(".zmc-line").length,
+    cards: document.querySelectorAll(".zmm-card").length,
+    visibleLines: document.querySelectorAll(".zmm-line").length,
   };
   session.destroy();
   return result;

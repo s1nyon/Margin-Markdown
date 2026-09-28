@@ -14,6 +14,11 @@ declare namespace _ZoteroTypes {
       "types.text": boolean;
       "types.image": boolean;
       "compactNoteIcons": boolean;
+      "rendering.markdown": boolean;
+      "rendering.latex": boolean;
+      "rendering.previewFontSize": number;
+      "rendering.mathScale": number;
+      "rendering.compactHeadings": boolean;
     };
   }
 }

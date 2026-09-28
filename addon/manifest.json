@@ -4,8 +4,8 @@
   "version": "__buildVersion__",
   "description": "在 Zotero PDF 页边显示带引线、可直接编辑的批注评论",
   "icons": {
-    "48": "content/icons/margin-comments.svg",
-    "96": "content/icons/margin-comments.svg"
+    "48": "content/icons/margin-markdown.svg",
+    "96": "content/icons/margin-markdown.svg"
   },
   "applications": {
     "zotero": {

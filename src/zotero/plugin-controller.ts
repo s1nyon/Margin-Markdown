@@ -3,13 +3,22 @@ import {
   MARGIN_ANNOTATION_TYPES,
   type MarginAnnotationType,
 } from "../core/types";
+import type { RenderingPreferences } from "../rendering/renderer";
 import { AnnotationStore } from "./annotation-store";
 import { ReaderSession } from "./reader-session";
 import { TOOLBAR_STYLES } from "./styles";
 
-const TOOLBAR_STYLE_ID = "zmc-toolbar-styles";
-const PREFERENCE_PANE_ROOT_ID = "zotero-prefpane-margincomments";
-const COMPACT_NOTE_SETTING_SELECTOR = '[data-zmc-setting="compact-note-icons"]';
+const TOOLBAR_STYLE_ID = "zmm-toolbar-styles";
+const PREFERENCE_PANE_ROOT_ID = "zotero-prefpane-marginmarkdown";
+const COMPACT_NOTE_SETTING_SELECTOR = '[data-zmm-setting="compact-note-icons"]';
+const RENDER_SETTING_SELECTOR = "[data-zmm-render-setting]";
+const DEFAULT_RENDERING_PREFERENCES: RenderingPreferences = {
+  markdown: true,
+  latex: true,
+  previewFontSize: 100,
+  mathScale: 100,
+  compactHeadings: true,
+};
 
 export class PluginController {
   private readonly store = new AnnotationStore();
@@ -17,6 +26,9 @@ export class PluginController {
   private readonly preferenceDocuments = new Set<Document>();
   private visibleTypes = new Set<MarginAnnotationType>(MARGIN_ANNOTATION_TYPES);
   private compactNoteIcons = false;
+  private renderingPreferences: RenderingPreferences = {
+    ...DEFAULT_RENDERING_PREFERENCES,
+  };
   private preferencePaneID?: string;
   private notifierID?: string;
   private enabled = true;
@@ -61,6 +73,7 @@ export class PluginController {
     this.enabled = this.readEnabledPreference();
     this.visibleTypes = this.readVisibleTypesPreference();
     this.compactNoteIcons = this.readCompactNoteIconsPreference();
+    this.renderingPreferences = this.readRenderingPreferences();
 
     await this.registerPreferencePane();
 
@@ -122,12 +135,12 @@ export class PluginController {
     if (!root) return;
     this.preferenceDocuments.add(doc);
 
-    root.querySelectorAll<HTMLInputElement>("[data-zmc-type]").forEach((checkbox) => {
-      const type = checkbox.dataset.zmcType as MarginAnnotationType | undefined;
+    root.querySelectorAll<HTMLInputElement>("[data-zmm-type]").forEach((checkbox) => {
+      const type = checkbox.dataset.zmmType as MarginAnnotationType | undefined;
       if (!type || !MARGIN_ANNOTATION_TYPES.includes(type)) return;
       checkbox.checked = this.visibleTypes.has(type);
-      if (checkbox.dataset.zmcBound === "true") return;
-      checkbox.dataset.zmcBound = "true";
+      if (checkbox.dataset.zmmBound === "true") return;
+      checkbox.dataset.zmmBound = "true";
       checkbox.addEventListener("change", () => {
         this.setTypeVisible(type, checkbox.checked);
       });
@@ -138,13 +151,23 @@ export class PluginController {
     );
     if (compactNoteCheckbox) {
       compactNoteCheckbox.checked = this.compactNoteIcons;
-      if (compactNoteCheckbox.dataset.zmcBound !== "true") {
-        compactNoteCheckbox.dataset.zmcBound = "true";
+      if (compactNoteCheckbox.dataset.zmmBound !== "true") {
+        compactNoteCheckbox.dataset.zmmBound = "true";
         compactNoteCheckbox.addEventListener("change", () => {
           this.setCompactNoteIcons(compactNoteCheckbox.checked);
         });
       }
     }
+
+    root.querySelectorAll<HTMLInputElement>(RENDER_SETTING_SELECTOR).forEach((input) => {
+      const key = input.dataset.zmmRenderSetting as keyof RenderingPreferences | undefined;
+      if (!key || !(key in this.renderingPreferences)) return;
+      this.syncRenderingControl(input, key);
+      if (input.dataset.zmmBound === "true") return;
+      input.dataset.zmmBound = "true";
+      const eventName = input.type === "range" ? "input" : "change";
+      input.addEventListener(eventName, () => this.setRenderingPreference(input, key));
+    });
   }
 
   private async ensureSession(reader: any): Promise<ReaderSession | undefined> {
@@ -153,6 +176,7 @@ export class PluginController {
     if (existing) {
       existing.setVisibleTypes(this.visibleTypes);
       existing.setCompactNoteIcons(this.compactNoteIcons);
+      existing.setRenderingPreferences(this.renderingPreferences);
       await existing.start(this.enabled);
       return existing;
     }
@@ -160,6 +184,7 @@ export class PluginController {
     const session = new ReaderSession(reader, this.store, () => this.updateToolbarButtons());
     session.setVisibleTypes(this.visibleTypes);
     session.setCompactNoteIcons(this.compactNoteIcons);
+    session.setRenderingPreferences(this.renderingPreferences);
     this.sessions.set(reader, session);
     try {
       await session.start(this.enabled);
@@ -225,6 +250,73 @@ export class PluginController {
     }
   }
 
+  private readRenderingPreferences(): RenderingPreferences {
+    const read = (key: keyof RenderingPreferences): unknown => {
+      try {
+        return (Zotero.Prefs as any).get(
+          `${config.prefsPrefix}.rendering.${key}`,
+          DEFAULT_RENDERING_PREFERENCES[key],
+        );
+      } catch {
+        return DEFAULT_RENDERING_PREFERENCES[key];
+      }
+    };
+    const previewFontSize = Number(read("previewFontSize"));
+    const mathScale = Number(read("mathScale"));
+    return {
+      markdown: Boolean(read("markdown")),
+      latex: Boolean(read("latex")),
+      previewFontSize: clampPercent(previewFontSize),
+      mathScale: clampPercent(mathScale),
+      compactHeadings: Boolean(read("compactHeadings")),
+    };
+  }
+
+  private setRenderingPreference(
+    input: HTMLInputElement,
+    key: keyof RenderingPreferences,
+  ): void {
+    const value = input.type === "checkbox"
+      ? input.checked
+      : clampPercent(Number(input.value));
+    this.renderingPreferences = {
+      ...this.renderingPreferences,
+      [key]: value,
+    } as RenderingPreferences;
+    try {
+      (Zotero.Prefs as any).set(
+        `${config.prefsPrefix}.rendering.${key}`,
+        value,
+        true,
+      );
+    } catch (error) {
+      (Zotero as any).logError?.(error);
+    }
+    for (const session of this.sessions.values()) {
+      session.setRenderingPreferences(this.renderingPreferences);
+    }
+    for (const doc of this.preferenceDocuments) {
+      const root = doc.getElementById(PREFERENCE_PANE_ROOT_ID);
+      const control = root?.querySelector<HTMLInputElement>(
+        `[data-zmm-render-setting="${key}"]`,
+      );
+      if (control) this.syncRenderingControl(control, key);
+    }
+  }
+
+  private syncRenderingControl(
+    input: HTMLInputElement,
+    key: keyof RenderingPreferences,
+  ): void {
+    const value = this.renderingPreferences[key];
+    if (input.type === "checkbox") input.checked = Boolean(value);
+    else input.value = String(value);
+    const output = input.ownerDocument.querySelector<HTMLOutputElement>(
+      `[data-zmm-render-output="${key}"]`,
+    );
+    if (output) output.value = `${value}%`;
+  }
+
   private setTypeVisible(type: MarginAnnotationType, visible: boolean): void {
     if (visible) {
       this.visibleTypes.add(type);
@@ -269,10 +361,10 @@ export class PluginController {
     try {
       this.preferencePaneID = await preferencePanes.register({
         pluginID: config.addonID,
-        id: "margin-comments-preferences",
-        label: "页边批注",
+        id: "margin-markdown-preferences",
+        label: "Margin Markdown",
         src: `chrome://${config.addonRef}/content/preferences.xhtml`,
-        image: `chrome://${config.addonRef}/content/icons/margin-comments.svg`,
+        image: `chrome://${config.addonRef}/content/icons/margin-markdown.svg`,
         stylesheets: [
           `chrome://${config.addonRef}/content/preferences.css`,
         ],
@@ -293,10 +385,10 @@ export class PluginController {
     const leader = doc.createElementNS("http://www.w3.org/2000/svg", "path");
 
     button.type = "button";
-    button.className = "toolbar-button zmc-toolbar-toggle";
+    button.className = "toolbar-button zmm-toolbar-toggle";
     button.title = "页边批注：显示划线解释和独立评论";
     button.setAttribute("aria-label", button.title);
-    button.dataset.zmcItemID = String(reader?.itemID ?? "");
+    button.dataset.zmmItemID = String(reader?.itemID ?? "");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("aria-hidden", "true");
     page.setAttribute("x", "2.5");
@@ -337,8 +429,8 @@ export class PluginController {
         this.preferenceDocuments.delete(doc);
         continue;
       }
-      root.querySelectorAll<HTMLInputElement>("[data-zmc-type]").forEach((checkbox) => {
-        const type = checkbox.dataset.zmcType as MarginAnnotationType | undefined;
+      root.querySelectorAll<HTMLInputElement>("[data-zmm-type]").forEach((checkbox) => {
+        const type = checkbox.dataset.zmmType as MarginAnnotationType | undefined;
         if (!type) return;
         checkbox.checked = this.visibleTypes.has(type);
       });
@@ -346,16 +438,20 @@ export class PluginController {
         COMPACT_NOTE_SETTING_SELECTOR,
       );
       if (compactNoteCheckbox) compactNoteCheckbox.checked = this.compactNoteIcons;
+      root.querySelectorAll<HTMLInputElement>(RENDER_SETTING_SELECTOR).forEach((input) => {
+        const key = input.dataset.zmmRenderSetting as keyof RenderingPreferences | undefined;
+        if (key && key in this.renderingPreferences) this.syncRenderingControl(input, key);
+      });
     }
   }
 
   private installFallbackToolbarButton(reader: any): void {
     const doc = reader?._iframeWindow?.document as Document | undefined;
-    if (!doc || doc.querySelector(".zmc-toolbar-toggle")) return;
+    if (!doc || doc.querySelector(".zmm-toolbar-toggle")) return;
     const customSections = doc.querySelector<HTMLElement>(".toolbar .end .custom-sections");
     if (!customSections) return;
     const section = doc.createElement("div");
-    section.className = "section zmc-fallback-section";
+    section.className = "section zmm-fallback-section";
     section.append(this.createToolbarButton(doc, reader));
     customSections.append(section);
   }
@@ -363,7 +459,7 @@ export class PluginController {
   private updateToolbarButtons(): void {
     for (const reader of (Zotero as any).Reader?._readers ?? []) {
       const doc = reader?._iframeWindow?.document as Document | undefined;
-      doc?.querySelectorAll<HTMLButtonElement>(".zmc-toolbar-toggle").forEach((button) =>
+      doc?.querySelectorAll<HTMLButtonElement>(".zmm-toolbar-toggle").forEach((button) =>
         this.syncToolbarButton(button),
       );
     }
@@ -388,7 +484,7 @@ export class PluginController {
   private removeToolbarUi(doc?: Document): void {
     if (!doc) return;
     doc.querySelectorAll(
-      ".zmc-toolbar-toggle,.zmc-fallback-section",
+      ".zmm-toolbar-toggle,.zmm-fallback-section",
     ).forEach((node) => node.remove());
     doc.getElementById(TOOLBAR_STYLE_ID)?.remove();
   }
@@ -405,4 +501,9 @@ export class PluginController {
   private isPdfReader(reader: any): boolean {
     return !!reader && (reader._type === "pdf" || reader.type === "pdf");
   }
+}
+
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) return 100;
+  return Math.min(160, Math.max(80, Math.round(value / 5) * 5));
 }

@@ -11,7 +11,7 @@ describe("PluginController annotation type settings", () => {
         set: vi.fn(),
       },
       PreferencePanes: {
-        register: vi.fn().mockResolvedValue("margin-comments-preferences"),
+        register: vi.fn().mockResolvedValue("margin-markdown-preferences"),
         unregister: vi.fn(),
       },
       Reader: { _readers: [] },
@@ -26,50 +26,69 @@ describe("PluginController annotation type settings", () => {
     const session = {
       setVisibleTypes: vi.fn(),
       setCompactNoteIcons: vi.fn(),
+      setRenderingPreferences: vi.fn(),
     };
     controller.sessions.set({}, session);
     await controller.registerPreferencePane();
 
     expect((Zotero as any).PreferencePanes.register).toHaveBeenCalledWith({
-      pluginID: "margin-comments@local.zotero",
-      id: "margin-comments-preferences",
-      label: "页边批注",
-      src: "chrome://margincomments/content/preferences.xhtml",
-      image: "chrome://margincomments/content/icons/margin-comments.svg",
-      stylesheets: ["chrome://margincomments/content/preferences.css"],
+      pluginID: "margin-markdown@s1nyon",
+      id: "margin-markdown-preferences",
+      label: "Margin Markdown",
+      src: "chrome://marginmarkdown/content/preferences.xhtml",
+      image: "chrome://marginmarkdown/content/icons/margin-markdown.svg",
+      stylesheets: ["chrome://marginmarkdown/content/preferences.css"],
     });
 
     const pane = document.createElement("section");
-    pane.id = "zotero-prefpane-margincomments";
+    pane.id = "zotero-prefpane-marginmarkdown";
     for (const type of ["highlight", "underline", "note", "text", "image"]) {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.dataset.zmcType = type;
+      checkbox.dataset.zmmType = type;
       pane.append(checkbox);
     }
     const compactNoteIcons = document.createElement("input");
     compactNoteIcons.type = "checkbox";
-    compactNoteIcons.dataset.zmcSetting = "compact-note-icons";
+    compactNoteIcons.dataset.zmmSetting = "compact-note-icons";
     pane.append(compactNoteIcons);
+    for (const key of ["markdown", "latex", "compactHeadings"]) {
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.dataset.zmmRenderSetting = key;
+      pane.append(input);
+    }
+    for (const key of ["previewFontSize", "mathScale"]) {
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = "80";
+      input.max = "160";
+      input.step = "5";
+      input.dataset.zmmRenderSetting = key;
+      pane.append(input);
+      const output = document.createElement("output");
+      output.dataset.zmmRenderOutput = key;
+      pane.append(output);
+    }
     document.body.append(pane);
     controller.registerPreferencePaneWindow(window);
 
-    const checkboxes = pane.querySelectorAll<HTMLInputElement>("[data-zmc-type]");
+    const checkboxes = pane.querySelectorAll<HTMLInputElement>("[data-zmm-type]");
     expect(checkboxes).toHaveLength(5);
     expect(
       (Array.from(checkboxes) as HTMLInputElement[]).map(
-        (checkbox) => checkbox.dataset.zmcType,
+        (checkbox) => checkbox.dataset.zmmType,
       ),
     ).toEqual(["highlight", "underline", "note", "text", "image"]);
 
     const underline = pane.querySelector<HTMLInputElement>(
-      '[data-zmc-type="underline"]',
+      '[data-zmm-type="underline"]',
     )!;
     underline.click();
 
     expect(underline.checked).toBe(false);
     expect((Zotero as any).Prefs.set).toHaveBeenCalledWith(
-      "extensions.zotero.margincomments.types.underline",
+      "extensions.zotero.marginmarkdown.types.underline",
       false,
       true,
     );
@@ -80,10 +99,39 @@ describe("PluginController annotation type settings", () => {
     expect(compactNoteIcons.checked).toBe(false);
     compactNoteIcons.click();
     expect((Zotero as any).Prefs.set).toHaveBeenCalledWith(
-      "extensions.zotero.margincomments.compactNoteIcons",
+      "extensions.zotero.marginmarkdown.compactNoteIcons",
       true,
       true,
     );
     expect(session.setCompactNoteIcons).toHaveBeenLastCalledWith(true);
+
+    const markdown = pane.querySelector<HTMLInputElement>(
+      '[data-zmm-render-setting="markdown"]',
+    )!;
+    expect(markdown.checked).toBe(true);
+    markdown.click();
+    expect((Zotero as any).Prefs.set).toHaveBeenCalledWith(
+      "extensions.zotero.marginmarkdown.rendering.markdown",
+      false,
+      true,
+    );
+    expect(session.setRenderingPreferences.mock.calls.at(-1)?.[0]).toMatchObject({
+      markdown: false,
+      latex: true,
+    });
+
+    const previewSize = pane.querySelector<HTMLInputElement>(
+      '[data-zmm-render-setting="previewFontSize"]',
+    )!;
+    previewSize.value = "115";
+    previewSize.dispatchEvent(new Event("input", { bubbles: true }));
+    expect((Zotero as any).Prefs.set).toHaveBeenCalledWith(
+      "extensions.zotero.marginmarkdown.rendering.previewFontSize",
+      115,
+      true,
+    );
+    expect(
+      pane.querySelector('[data-zmm-render-output="previewFontSize"]')?.textContent,
+    ).toBe("115%");
   });
 });
