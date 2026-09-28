@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Margin Markdown interface preview</title>
+  <desc id="desc">A research paper page with a highlighted passage connected to a Markdown note containing a rendered equation.</desc>
+  <rect width="1200" height="650" rx="28" fill="#101827"/>
+  <rect x="38" y="34" width="782" height="582" rx="18" fill="#182235" stroke="#334155" stroke-width="2"/>
+  <text x="82" y="88" fill="#94a3b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" letter-spacing="2.2">RESEARCH NOTES · 02</text>
+  <text x="82" y="132" fill="#f1f5f9" font-family="Georgia, serif" font-size="27" font-weight="700">Guiding search with admissible heuristics</text>
+  <rect x="80" y="168" width="310" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="190" width="330" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="212" width="290" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="264" width="332" height="42" rx="5" fill="#16443d"/>
+  <rect x="80" y="274" width="300" height="8" rx="4" fill="#7fa99a"/>
+  <rect x="80" y="290" width="270" height="8" rx="4" fill="#7fa99a"/>
+  <rect x="80" y="326" width="318" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="348" width="328" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="370" width="294" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="422" width="324" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="444" width="296" height="8" rx="4" fill="#344155"/>
+  <rect x="80" y="466" width="334" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="168" width="320" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="190" width="300" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="212" width="328" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="264" width="324" height="42" rx="5" fill="#303a61"/>
+  <rect x="448" y="274" width="294" height="8" rx="4" fill="#a4a9c1"/>
+  <rect x="448" y="290" width="314" height="8" rx="4" fill="#a4a9c1"/>
+  <rect x="448" y="326" width="320" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="348" width="286" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="370" width="330" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="422" width="306" height="8" rx="4" fill="#344155"/>
+  <rect x="448" y="444" width="328" height="8" rx="4" fill="#344155"/>
+  <path d="M390 285h398l30 27" fill="none" stroke="#a5b4fc" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
+  <circle cx="390" cy="285" r="5" fill="#a5b4fc"/>
+  <rect x="828" y="212" width="332" height="270" rx="18" fill="#182235" stroke="#334155" stroke-width="2"/>
+  <rect x="828" y="212" width="5" height="270" rx="2.5" fill="#a5b4fc"/>
+  <circle cx="858" cy="247" r="5" fill="#5eead4"/>
+  <text x="878" y="253" fill="#94a3b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="600" letter-spacing=".8">MARGIN NOTE</text>
+  <text x="858" y="302" fill="#f1f5f9" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="23" font-weight="700">Why take the maximum?</text>
+  <text x="858" y="342" fill="#cbd5e1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="17">Both heuristics underestimate the</text>
+  <text x="858" y="370" fill="#cbd5e1" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="17">remaining cost to the goal.</text>
+  <rect x="858" y="391" width="270" height="56" rx="10" fill="#253246"/>
+  <text x="878" y="427" fill="#f1f5f9" font-family="Georgia, serif" font-size="21" font-style="italic">h(n) = max(h₁(n), h₂(n))</text>
+  <text x="828" y="528" fill="#94a3b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" letter-spacing=".6">ILLUSTRATIVE PRODUCT PREVIEW</text>
+</svg>

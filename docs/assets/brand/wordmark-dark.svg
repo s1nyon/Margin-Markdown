@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 104" role="img" aria-labelledby="title">
+  <title id="title">Margin Markdown</title>
+  <g transform="translate(4 4) scale(.75)">
+    <path d="M22 96V32l32 31 32-31v64" fill="none" stroke="#f1f5f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+    <path d="M105 29v57M98 43h14M98 72h14" fill="none" stroke="#5eead4" stroke-linecap="round" stroke-width="7"/>
+    <circle cx="105" cy="99" r="7" fill="#a5b4fc"/>
+  </g>
+  <text x="112" y="69" fill="#f1f5f9" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="700" letter-spacing="-1.8">Margin Markdown</text>
+</svg>

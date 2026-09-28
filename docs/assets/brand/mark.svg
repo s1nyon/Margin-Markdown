@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Margin Markdown mark</title>
+  <path d="M22 96V32l32 31 32-31v64" fill="none" stroke="#18233a" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+  <path d="M105 29v57M98 43h14M98 72h14" fill="none" stroke="#0f766e" stroke-linecap="round" stroke-width="7"/>
+  <circle cx="105" cy="99" r="7" fill="#4f46e5"/>
+</svg>
