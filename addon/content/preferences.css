@@ -2,6 +2,38 @@
   max-width: 720px;
 }
 
+#zotero-prefpane-marginmarkdown .zmm-prefs-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 0 0 16px;
+  padding: 5px 2px 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+#zotero-prefpane-marginmarkdown .zmm-prefs-brand img {
+  display: block;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+}
+
+#zotero-prefpane-marginmarkdown .zmm-prefs-brand span {
+  display: grid;
+  gap: 4px;
+}
+
+#zotero-prefpane-marginmarkdown .zmm-prefs-brand strong {
+  font-size: 17px;
+  letter-spacing: -.2px;
+}
+
+#zotero-prefpane-marginmarkdown .zmm-prefs-brand small {
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  line-height: 1.4;
+}
+
 #zotero-prefpane-marginmarkdown .zmm-prefs-heading {
   margin-block: 0 6px;
 }
@@ -36,7 +68,7 @@
 
 #zotero-prefpane-marginmarkdown .zmm-prefs-type-row input {
   margin: 0;
-  accent-color: #4a78c2;
+  accent-color: #4f46e5;
 }
 
 #zotero-prefpane-marginmarkdown .zmm-prefs-option-row {
@@ -55,7 +87,7 @@
 
 #zotero-prefpane-marginmarkdown .zmm-prefs-option-row input {
   margin: 2px 0 0;
-  accent-color: #4a78c2;
+  accent-color: #4f46e5;
 }
 
 #zotero-prefpane-marginmarkdown .zmm-prefs-option-row span {
@@ -79,7 +111,7 @@
 
 #zotero-prefpane-marginmarkdown .zmm-prefs-range-row input {
   margin: 0;
-  accent-color: #4a78c2;
+  accent-color: #4f46e5;
 }
 
 #zotero-prefpane-marginmarkdown .zmm-prefs-range-row output {

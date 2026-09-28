@@ -21,6 +21,26 @@ describe("PluginController annotation type settings", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it("uses the Margin Markdown monogram in an accessible Reader toolbar toggle", () => {
+    const controller = new PluginController() as any;
+    const reader = { _type: "pdf", itemID: 23, _iframeWindow: { document } };
+    (Zotero as any).Reader._readers.push(reader);
+
+    const button = controller.createToolbarButton(document, reader) as HTMLButtonElement;
+    document.body.append(button);
+    const svg = button.querySelector("svg")!;
+
+    expect(button.getAttribute("aria-label")).toContain("Margin Markdown");
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(svg.getAttribute("viewBox")).toBe("0 0 26 24");
+    expect(svg.querySelectorAll("path")).toHaveLength(2);
+    expect(svg.querySelector("path")?.getAttribute("d")).toBe("M3 21V4l7.5 8L18 4v17");
+
+    button.click();
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    expect(button.getAttribute("aria-label")).toContain("显示页边批注");
+  });
+
   it("registers a preference pane and persists type changes immediately", async () => {
     const controller = new PluginController() as any;
     const session = {

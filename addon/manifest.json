@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "__addonName__",
   "version": "__buildVersion__",
-  "description": "在 Zotero PDF 页边显示带引线、可直接编辑的批注评论",
+  "description": "在 Zotero PDF 页边阅读与编辑 Markdown 批注，并渲染数学公式。",
   "icons": {
     "48": "content/icons/margin-markdown.svg",
     "96": "content/icons/margin-markdown.svg"

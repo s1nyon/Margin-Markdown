@@ -1,8 +1,8 @@
 {
   "name": "margin-markdown",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
-  "description": "Markdown and LaTeX rendered margin comments for Zotero PDF annotations",
+  "description": "Markdown and LaTeX reading previews for Zotero PDF annotations",
   "author": "s1nyon",
   "license": "MIT",
   "repository": {

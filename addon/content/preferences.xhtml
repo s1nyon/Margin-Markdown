@@ -1,5 +1,17 @@
 <vbox id="zotero-prefpane-marginmarkdown"
+      xmlns:html="http://www.w3.org/1999/xhtml"
       onload="Zotero.MarginMarkdown.controller.registerPreferencePaneWindow(window)">
+  <html:header class="zmm-prefs-brand">
+    <html:img src="chrome://marginmarkdown/content/icons/margin-markdown.svg"
+              alt=""
+              width="48"
+              height="48" />
+    <html:span>
+      <html:strong>Margin Markdown</html:strong>
+      <html:small>让思考，留在论文旁。</html:small>
+    </html:span>
+  </html:header>
+
   <groupbox data-search-strings-raw="页边批注,旁注,批注类型,高亮,下划线,划线,便签,文字,图片,区域,图标,尺寸,缩小">
     <label>
       <html:h2 class="zmm-prefs-heading">旁注显示</html:h2>

@@ -380,44 +380,29 @@ export class PluginController {
     this.ensureToolbarStyles(doc);
     const button = doc.createElement("button");
     const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
-    const page = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
-    const line1 = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-    const line2 = doc.createElementNS("http://www.w3.org/2000/svg", "path");
-    const card = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
-    const leader = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+    const monogram = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+    const margin = doc.createElementNS("http://www.w3.org/2000/svg", "path");
 
     button.type = "button";
     button.className = "toolbar-button zmm-toolbar-toggle";
-    button.title = "页边批注：显示划线解释和独立评论";
+    button.title = "Margin Markdown：切换页边批注";
     button.setAttribute("aria-label", button.title);
     button.dataset.zmmItemID = String(reader?.itemID ?? "");
-    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("viewBox", "0 0 26 24");
     svg.setAttribute("aria-hidden", "true");
-    page.setAttribute("x", "2.5");
-    page.setAttribute("y", "3");
-    page.setAttribute("width", "11");
-    page.setAttribute("height", "18");
-    page.setAttribute("rx", "1.2");
-    page.setAttribute("fill", "none");
-    page.setAttribute("stroke", "currentColor");
-    page.setAttribute("stroke-width", "1.5");
-    line1.setAttribute("d", "M5 8h6M5 11h5");
-    line2.setAttribute("d", "M5 14h6");
-    line1.setAttribute("stroke", "currentColor");
-    line2.setAttribute("stroke", "currentColor");
-    line1.setAttribute("stroke-width", "1.3");
-    line2.setAttribute("stroke-width", "1.3");
-    card.setAttribute("x", "17");
-    card.setAttribute("y", "7");
-    card.setAttribute("width", "5");
-    card.setAttribute("height", "8");
-    card.setAttribute("rx", "1");
-    card.setAttribute("fill", "currentColor");
-    leader.setAttribute("d", "M12 11.5h3l2-1.5");
-    leader.setAttribute("fill", "none");
-    leader.setAttribute("stroke", "currentColor");
-    leader.setAttribute("stroke-width", "1.3");
-    svg.append(page, line1, line2, leader, card);
+    monogram.setAttribute("d", "M3 21V4l7.5 8L18 4v17");
+    monogram.setAttribute("fill", "none");
+    monogram.setAttribute("stroke", "currentColor");
+    monogram.setAttribute("stroke-width", "2.7");
+    monogram.setAttribute("stroke-linecap", "round");
+    monogram.setAttribute("stroke-linejoin", "round");
+    margin.setAttribute("d", "M22 5v13M20 8h4M20 15h4");
+    margin.setAttribute("fill", "none");
+    margin.setAttribute("stroke", "currentColor");
+    margin.setAttribute("stroke-width", "1.8");
+    margin.setAttribute("stroke-linecap", "round");
+    margin.setAttribute("opacity", "0.68");
+    svg.append(monogram, margin);
     button.append(svg);
     button.addEventListener("click", () => this.toggleEnabled());
     this.syncToolbarButton(button);
@@ -470,9 +455,11 @@ export class PluginController {
   private syncToolbarButton(button: HTMLButtonElement): void {
     button.classList.toggle("active", this.enabled);
     button.setAttribute("aria-pressed", String(this.enabled));
-    button.title = this.enabled
-      ? "页边批注已显示（点击隐藏）"
-      : "页边批注已隐藏（点击显示）";
+    const label = this.enabled
+      ? "Margin Markdown：隐藏页边批注"
+      : "Margin Markdown：显示页边批注";
+    button.title = label;
+    button.setAttribute("aria-label", label);
   }
 
   private ensureToolbarStyles(doc: Document): void {
