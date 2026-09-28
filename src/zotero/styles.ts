@@ -1,6 +1,6 @@
 export const PDF_STYLES = `
 .pdfViewer.zmm-viewer {
-  --zmm-gutter-width: calc(var(--zmm-card-width, 300px) + 40px);
+  --zmm-gutter-width: calc(var(--zmm-card-width, 300px) + 34px);
   padding-inline-start: calc(18px + var(--zmm-gutter-width)) !important;
   padding-inline-end: calc(18px + var(--zmm-gutter-width)) !important;
 }
@@ -81,11 +81,11 @@ export const PDF_STYLES = `
 }
 
 .zmm-margin-column-left {
-  right: calc(100% + 24px);
+  right: calc(100% + 18px);
 }
 
 .zmm-margin-column-right {
-  left: calc(100% + 24px);
+  left: calc(100% + 18px);
 }
 
 .zmm-margin-scrollport {

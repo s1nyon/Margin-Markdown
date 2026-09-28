@@ -9,6 +9,7 @@ Record the operating system and Zotero version with each run. The first release 
 - Open a PDF with highlights and comments; confirm cards appear on both margin sides with leader lines to their annotations.
 - Check zoom, rotation, page changes, card hover, native annotation hover, and toolbar visibility toggle.
 - Confirm cards use the modern rounded border and soft shadow, and start at a readable width of about 300 px.
+- Confirm cards sit a comfortable 18 px from the page edge at the default scale, without touching the paper text.
 - In preferences, move the card-width slider from 260 to 380 px; confirm cards and the PDF page gutter resize without clipping either margin.
 - Move the pointer briefly across a long Markdown card; confirm it does not open immediately. Hold for about 200 ms; confirm the full card opens without a click and its top edge stays in place.
 - Move away; confirm the card remains open briefly, then collapses after about 300 ms. Use **固定展开** to keep one card open, and **取消固定** to return it to hover behavior.

@@ -16,7 +16,7 @@ KaTeX scripts, styles, fonts, and dependency license texts are packaged with the
 
 ## Layout integration
 
-The existing margin layout measures card heights and places cards around page anchors. Cards default to 300 px wide, adjustable from 260 to 380 px; the PDF viewer gutter follows the selected width. Academic Compact typography uses a 1.5 body line height, restrained heading and paragraph spacing, and formula text slightly larger than body text.
+The existing margin layout measures card heights and places cards around page anchors. Cards default to 300 px wide, adjustable from 260 to 380 px; they sit 18 px from the PDF page edge, and the viewer gutter follows both the selected width and this gap. Academic Compact typography uses a 1.5 body line height, restrained heading and paragraph spacing, and formula text slightly larger than body text.
 
 Long previews collapse to a 7.5 em reading window with a subtle bottom fade. A 180 ms hover delay avoids expanding cards while the pointer passes over them; leaving starts a 300 ms grace period. Keyboard focus, text selection, and active editing keep the preview open, and the card's footer control can pin it open. Expansion preserves the hovered card's top position and moves later cards down to avoid overlap. Resizing, formula font loading, and font-size changes trigger a fresh measurement and layout pass.
 
