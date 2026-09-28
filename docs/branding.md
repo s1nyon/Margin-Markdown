@@ -32,7 +32,7 @@ SVGs use embedded paths, text, and colors. They have no remote assets, scripts, 
 ## Writing and usage
 
 - Use **Margin Markdown** as the product name.
-- Chinese tagline: **让思考，留在论文旁。**
-- English tagline: **Keep your thinking beside the paper.**
+- Chinese short description: **Zotero PDF 页边的 Markdown 批注**
+- English short description: **Markdown notes in Zotero PDF margins**
 - Describe the interface illustration as a preview; do not call it a Zotero screenshot.
 - Keep upstream credit and third-party license notices intact when changing visual assets or packaging.
