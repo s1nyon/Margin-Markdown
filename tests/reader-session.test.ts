@@ -292,6 +292,9 @@ describe("ReaderSession", () => {
     expect(document.getElementById("zmm-pdf-styles")?.textContent).toContain(
       "padding-inline",
     );
+    expect(document.getElementById("zmm-pdf-styles")?.textContent).toContain(
+      "left: calc(100% - 100px)",
+    );
     expect(document.getElementById("zmm-katex-styles")?.textContent).toContain(
       "data:font/woff2;base64,",
     );
@@ -334,6 +337,11 @@ describe("ReaderSession", () => {
         .querySelector('.zmm-line[data-annotation-key="NOTE0001"]')
         ?.getAttribute("points"),
     ).toMatch(/^319,105 /);
+    expect(
+      document
+        .querySelector('.zmm-line[data-annotation-key="NOTE0001"]')
+        ?.getAttribute("points"),
+    ).toContain("500,");
     session.setCompactNoteIcons(false);
     expect(rendererPrototype._drawNote).toBe(originalDrawNote);
     expect(viewPrototype.getSelectableAnnotations).toBe(originalSelectable);

@@ -85,7 +85,7 @@ export const PDF_STYLES = `
 }
 
 .zmm-margin-column-right {
-  left: calc(100% + 18px);
+  left: calc(100% - 100px);
 }
 
 .zmm-margin-scrollport {

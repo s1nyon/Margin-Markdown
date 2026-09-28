@@ -30,6 +30,7 @@ const STYLE_ID = "zmm-pdf-styles";
 const KATEX_STYLE_ID = "zmm-katex-styles";
 const DEFAULT_CARD_WIDTH = 300;
 const CARD_GAP_FROM_PAGE = 18;
+const RIGHT_CARD_INSET = 100;
 const EXTRA_VIEWER_GUTTER = 16;
 const COLLAPSE_SCALE_THRESHOLD = 0.8;
 const LAYOUT_PADDING = 8;
@@ -929,8 +930,8 @@ export class ReaderSession {
     const dot = doc.createElementNS(SVG_NS, "circle");
     const endY = cardY + Math.min(26, cardHeight / 2);
     const isLeft = runtime.anchor.side === "left";
-    const elbowX = isLeft ? -12 : pageWidth + 12;
-    const endX = isLeft ? -CARD_GAP_FROM_PAGE : pageWidth + CARD_GAP_FROM_PAGE;
+    const elbowX = isLeft ? -12 : pageWidth - RIGHT_CARD_INSET - 12;
+    const endX = isLeft ? -CARD_GAP_FROM_PAGE : pageWidth - RIGHT_CARD_INSET;
     line.classList.add("zmm-line");
     line.dataset.annotationKey = runtime.annotation.key;
     line.classList.toggle("zmm-hovered", this.hoveredKey === runtime.annotation.key);
