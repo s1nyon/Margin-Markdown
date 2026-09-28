@@ -58,12 +58,12 @@ describe("PluginController annotation type settings", () => {
       input.dataset.zmmRenderSetting = key;
       pane.append(input);
     }
-    for (const key of ["previewFontSize", "mathScale"]) {
+    for (const key of ["cardWidth", "previewFontSize", "mathScale"]) {
       const input = document.createElement("input");
       input.type = "range";
-      input.min = "80";
-      input.max = "160";
-      input.step = "5";
+      input.min = key === "cardWidth" ? "260" : "80";
+      input.max = key === "cardWidth" ? "380" : "160";
+      input.step = key === "cardWidth" ? "10" : "5";
       input.dataset.zmmRenderSetting = key;
       pane.append(input);
       const output = document.createElement("output");
@@ -133,5 +133,22 @@ describe("PluginController annotation type settings", () => {
     expect(
       pane.querySelector('[data-zmm-render-output="previewFontSize"]')?.textContent,
     ).toBe("115%");
+
+    const cardWidth = pane.querySelector<HTMLInputElement>(
+      '[data-zmm-render-setting="cardWidth"]',
+    )!;
+    cardWidth.value = "340";
+    cardWidth.dispatchEvent(new Event("input", { bubbles: true }));
+    expect((Zotero as any).Prefs.set).toHaveBeenCalledWith(
+      "extensions.zotero.marginmarkdown.rendering.cardWidth",
+      340,
+      true,
+    );
+    expect(
+      pane.querySelector('[data-zmm-render-output="cardWidth"]')?.textContent,
+    ).toBe("340px");
+    expect(session.setRenderingPreferences.mock.calls.at(-1)?.[0]).toMatchObject({
+      cardWidth: 340,
+    });
   });
 });

@@ -8,7 +8,9 @@ Margin Markdown displays Zotero PDF annotation comments as compact margin cards 
 - Separate Markdown reading preview and plain-text source editor.
 - KaTeX support for `$...$`, `$$...$$`, `\(...\)`, and `\[...\]`.
 - Local KaTeX styles, fonts, and dependency notices in the installer.
-- Adjustable preview and formula size, compact headings, and expandable previews.
+- Adjustable card width (260–380 px, 300 px by default), preview and formula size, and compact headings.
+- Markdown-aware preview cards that expand after a brief hover, stay open while focused or selected, and can be pinned open.
+- Soft borders and layered shadows, a compact fade at the collapsed edge, and stable card positions during expansion.
 - Safe HTML sanitization, link handling, and readable fallback for invalid math.
 - Zotero 9 support. Zotero 10 is planned for a later compatibility pass.
 

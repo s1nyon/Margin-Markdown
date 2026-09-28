@@ -18,6 +18,11 @@ export interface CollapsibleLayoutOptions extends LayoutOptions {
   expanded?: boolean;
   summaryHeight?: number;
   expandedTopPadding?: number;
+  stableAnchor?: {
+    id: string;
+    top: number;
+    previousPositions: ReadonlyMap<string, number>;
+  };
 }
 
 export interface CollapsibleLayoutResult {
@@ -87,6 +92,41 @@ export function layoutCollapsibleMargin(
     0,
   );
   const overflow = requiredHeight > Math.max(0, pageHeight - padding * 2);
+
+  if (options.stableAnchor) {
+    const anchorIndex = normalized.findIndex(
+      (item) => item.id === options.stableAnchor?.id,
+    );
+    if (anchorIndex >= 0) {
+      const positions: PositionedLayoutItem[] = [];
+      let cursor = padding;
+      for (let index = 0; index < normalized.length; index += 1) {
+        const item = normalized[index];
+        const previous = positions.at(-1);
+        const oldY = options.stableAnchor.previousPositions.get(item.id);
+        const desired = index === anchorIndex
+          ? options.stableAnchor.top
+          : oldY ?? item.anchorY - item.height / 2;
+        const y = Math.max(
+          padding,
+          previous ? previous.y + previous.height + gap : padding,
+          desired,
+        );
+        positions.push({ ...item, y });
+        cursor = y + item.height + gap;
+      }
+      const contentHeight = Math.max(
+        pageHeight,
+        positions.length ? cursor - gap + padding : pageHeight,
+      );
+      return {
+        positions,
+        hiddenIDs: [],
+        overflow: contentHeight > pageHeight,
+        contentHeight,
+      };
+    }
+  }
 
   if (!overflow) {
     return {

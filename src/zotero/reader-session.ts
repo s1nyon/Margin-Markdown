@@ -28,18 +28,21 @@ import { PDF_STYLES } from "./styles";
 const SVG_NS = "http://www.w3.org/2000/svg";
 const STYLE_ID = "zmm-pdf-styles";
 const KATEX_STYLE_ID = "zmm-katex-styles";
-const CARD_WIDTH = 264;
+const DEFAULT_CARD_WIDTH = 300;
 const CARD_GAP_FROM_PAGE = 24;
-const MARGIN_EXTENT = CARD_WIDTH + CARD_GAP_FROM_PAGE;
+const EXTRA_VIEWER_GUTTER = 16;
 const COLLAPSE_SCALE_THRESHOLD = 0.8;
 const LAYOUT_PADDING = 8;
 const CARD_GAP = 8;
 const SUMMARY_HEIGHT = 34;
 const EXPANDED_TOP_PADDING = 48;
 const FILTER_UI_SETTLE_MS = 80;
+const HOVER_EXPAND_DELAY_MS = 180;
+const HOVER_COLLAPSE_DELAY_MS = 300;
 const DEFAULT_RENDERING_PREFERENCES: RenderingPreferences = {
   markdown: true,
   latex: true,
+  cardWidth: DEFAULT_CARD_WIDTH,
   previewFontSize: 100,
   mathScale: 100,
   compactHeadings: true,
@@ -56,6 +59,14 @@ interface CardRuntime {
   state: HTMLElement;
   expandButton: HTMLButtonElement;
   previewExpanded: boolean;
+  pointerInside: boolean;
+  hoverExpanded: boolean;
+  pinnedExpanded: boolean;
+  focusWithin: boolean;
+  selectionWithin: boolean;
+  pointerSelecting: boolean;
+  truncated: boolean;
+  previewMeasurementDirty: boolean;
   originalValue: string;
   currentValue: string;
   dirty: boolean;
@@ -64,6 +75,8 @@ interface CardRuntime {
   heightMode?: string;
   timer?: ReturnType<typeof setTimeout>;
   statusTimer?: ReturnType<typeof setTimeout>;
+  expandTimer?: ReturnType<typeof setTimeout>;
+  collapseTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface MountedPage {
@@ -89,6 +102,7 @@ export class ReaderSession {
   private readonly forcedKeys = new Set<string>();
   private readonly mountedPages = new Map<number, MountedPage>();
   private readonly expandedMargins = new Set<string>();
+  private readonly pinnedPreviewKeys = new Set<string>();
   private visibleTypes = new Set<MarginAnnotationType>(MARGIN_ANNOTATION_TYPES);
   private annotations: MarginAnnotation[] = [];
   private nativeVisibleIDs?: ReadonlySet<string>;
@@ -111,6 +125,13 @@ export class ReaderSession {
   private renderFramesRemaining = 0;
   private centerFramesRemaining = 0;
   private overlayRoot?: HTMLElement;
+  private interactionDocument?: Document;
+  private readonly onDocumentPointerUp = () => this.finishPointerSelection();
+  private readonly onDocumentSelectionChange = () => this.updateSelectionStates();
+  private readonly onFontsLoaded = () => {
+    for (const runtime of this.cardRuntimes()) runtime.previewMeasurementDirty = true;
+    this.remeasurePreviews();
+  };
 
   constructor(
     readonly reader: any,
@@ -175,18 +196,31 @@ export class ReaderSession {
     if (
       this.renderingPreferences.markdown === preferences.markdown
       && this.renderingPreferences.latex === preferences.latex
+      && this.renderingPreferences.cardWidth === preferences.cardWidth
       && this.renderingPreferences.previewFontSize === preferences.previewFontSize
       && this.renderingPreferences.mathScale === preferences.mathScale
       && this.renderingPreferences.compactHeadings === preferences.compactHeadings
     ) return;
 
+    const markdownChanged = this.renderingPreferences.markdown !== preferences.markdown;
+    const latexChanged = this.renderingPreferences.latex !== preferences.latex;
     this.renderingPreferences = { ...preferences };
+    this.applyCardGeometry();
     for (const runtime of this.cardRuntimes()) {
-      this.applyRenderingPreferences(runtime);
-      this.updatePreview(runtime);
+      if (markdownChanged || latexChanged) this.updatePreview(runtime);
+      else {
+        runtime.previewMeasurementDirty = true;
+        runtime.card.classList.toggle(
+          "zmm-compact-headings",
+          preferences.compactHeadings,
+        );
+        this.applyRenderingPreferences(runtime);
+        this.measurePreviewOverflow(runtime);
+        this.syncPreviewDOM(runtime);
+      }
       runtime.measuredHeight = undefined;
-      this.relayoutRuntime(runtime);
     }
+    for (const mounted of this.mountedPages.values()) this.layoutPage(mounted);
   }
 
   async reveal(keys: readonly string[]): Promise<void> {
@@ -214,6 +248,10 @@ export class ReaderSession {
 
     this.pendingRefresh = false;
     this.annotations = this.store.list(this.attachmentID);
+    const annotationKeys = new Set(this.annotations.map((annotation) => annotation.key));
+    for (const key of this.pinnedPreviewKeys) {
+      if (!annotationKeys.has(key)) this.pinnedPreviewKeys.delete(key);
+    }
     if (this.adapterReady) this.syncCompactNoteIcons();
     if (this.enabled && this.adapterReady) this.render();
   }
@@ -343,6 +381,7 @@ export class ReaderSession {
 
     this.unmountPage(handle.pageIndex);
     const doc = handle.element.ownerDocument;
+    this.bindInteractionDocument(doc);
     const overlay = doc.createElement("div");
     const lines = doc.createElementNS(SVG_NS, "svg") as SVGSVGElement;
     const cards = doc.createElement("div");
@@ -499,7 +538,7 @@ export class ReaderSession {
   private toggleMargin(mounted: MountedPage, side: MarginSide): void {
     const key = this.marginStateKey(mounted.handle.pageIndex, side);
     const column = mounted.columns[side];
-    if (column.root.classList.contains("zmm-margin-expanded")) {
+    if (this.expandedMargins.has(key)) {
       this.expandedMargins.delete(key);
       const activeEditor = mounted.runtimes.find(
         (runtime) =>
@@ -570,6 +609,14 @@ export class ReaderSession {
       state,
       expandButton,
       previewExpanded: false,
+      pointerInside: false,
+      hoverExpanded: false,
+      pinnedExpanded: this.pinnedPreviewKeys.has(annotation.key),
+      focusWithin: false,
+      selectionWithin: false,
+      pointerSelecting: false,
+      truncated: false,
+      previewMeasurementDirty: true,
       originalValue: annotation.comment,
       currentValue: annotation.comment,
       dirty: false,
@@ -578,12 +625,20 @@ export class ReaderSession {
     this.updatePreview(runtime);
     card.classList.toggle("zmm-hovered", this.hoveredKey === annotation.key);
 
-    card.addEventListener("pointerenter", () =>
-      this.setHovered(runtime.annotation.key),
-    );
-    card.addEventListener("pointerleave", () => this.setHovered());
+    card.addEventListener("pointerenter", () => {
+      this.setHovered(runtime.annotation.key);
+      this.enterPreview(runtime);
+    });
+    card.addEventListener("pointerleave", () => {
+      this.setHovered();
+      this.leavePreview(runtime);
+    });
+    card.addEventListener("focusin", () => this.focusPreview(runtime));
+    card.addEventListener("focusout", () => {
+      setTimeout(() => this.refreshFocusState(runtime), 0);
+    });
     card.addEventListener("pointerdown", (event) => {
-      if ((event.target as Element).closest("a, button, textarea")) return;
+      if ((event.target as Element).closest("a, button, textarea, .zmm-card-preview")) return;
       this.setActive(runtime.annotation.key);
       this.adapter.selectAnnotation(runtime.annotation.key);
     });
@@ -597,6 +652,10 @@ export class ReaderSession {
       }
       if (!runtime.annotation.readOnly) this.openEditor(runtime);
     });
+    preview.addEventListener("pointerdown", () => {
+      runtime.pointerSelecting = true;
+      this.changePreviewState(runtime);
+    });
     preview.addEventListener("keydown", (event) => {
       if (event.target !== preview || !["Enter", " "].includes(event.key)) return;
       event.preventDefault();
@@ -605,10 +664,10 @@ export class ReaderSession {
     expandButton.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      runtime.previewExpanded = !runtime.previewExpanded;
-      runtime.measuredHeight = undefined;
-      this.updatePreview(runtime);
-      this.relayoutRuntime(runtime);
+      runtime.pinnedExpanded = !runtime.pinnedExpanded;
+      if (runtime.pinnedExpanded) this.pinnedPreviewKeys.add(runtime.annotation.key);
+      else this.pinnedPreviewKeys.delete(runtime.annotation.key);
+      this.changePreviewState(runtime);
     });
     editor.addEventListener("focus", () => {
       this.setActive(runtime.annotation.key);
@@ -678,6 +737,7 @@ export class ReaderSession {
     editor.addEventListener("blur", () => {
       void this.persist(runtime).finally(() => {
         this.closeEditor(runtime, pageIndex);
+        this.refreshFocusState(runtime);
         this.flushPendingRefresh();
       });
     });
@@ -687,6 +747,9 @@ export class ReaderSession {
   private layoutPage(mounted: MountedPage): void {
     this.positionOverlay(mounted);
     const { width, height } = this.pageDimensions(mounted.handle);
+    const previousPositions = new Map(
+      [...mounted.positions].map(([id, position]) => [id, position.y] as const),
+    );
     mounted.positions.clear();
 
     for (const side of ["left", "right"] as const) {
@@ -701,6 +764,22 @@ export class ReaderSession {
         runtime.card.classList.contains("zmm-editing"),
       );
       const requestedExpanded = this.expandedMargins.has(stateKey);
+      for (const runtime of sideRuntimes) {
+        this.measurePreviewOverflow(runtime);
+        this.syncPreviewDOM(runtime);
+      }
+      const activePreview = sideRuntimes.find(
+        (runtime) => runtime.previewExpanded && runtime.annotation.key === this.hoveredKey,
+      ) ?? sideRuntimes.find((runtime) => runtime.previewExpanded && runtime.focusWithin)
+        ?? sideRuntimes.find((runtime) => runtime.previewExpanded && runtime.pinnedExpanded)
+        ?? sideRuntimes.find((runtime) => runtime.previewExpanded);
+      const stableAnchor = activePreview && previousPositions.has(activePreview.annotation.key)
+        ? {
+            id: activePreview.annotation.key,
+            top: previousPositions.get(activePreview.annotation.key)!,
+            previousPositions,
+          }
+        : undefined;
       const runtimeByID = new Map(
         sideRuntimes.map((runtime) => [runtime.annotation.key, runtime] as const),
       );
@@ -717,15 +796,17 @@ export class ReaderSession {
           summaryHeight: SUMMARY_HEIGHT,
           expandedTopPadding: EXPANDED_TOP_PADDING,
           expanded: requestedExpanded || editing,
+          stableAnchor,
         },
       );
-      const expanded = result.overflow && (requestedExpanded || editing);
+      const transientPreviewExpansion = Boolean(activePreview) && !requestedExpanded && !editing;
+      const expanded = result.overflow && (requestedExpanded || editing || Boolean(activePreview));
       if (!result.overflow) this.expandedMargins.delete(stateKey);
       if (!expanded) column.scrollport.scrollTop = 0;
 
       column.root.classList.toggle("zmm-margin-expanded", expanded);
       column.root.classList.toggle("zmm-margin-overflow", result.overflow);
-      column.toggle.hidden = !result.overflow;
+      column.toggle.hidden = !result.overflow || transientPreviewExpansion;
       column.toggle.setAttribute("aria-expanded", String(expanded));
       const toggleText = expanded
         ? "收起评论"
@@ -757,12 +838,13 @@ export class ReaderSession {
       }
     }
 
-    mounted.lines.style.left = `-${MARGIN_EXTENT}px`;
-    mounted.lines.setAttribute("width", String(width + MARGIN_EXTENT * 2));
+    const marginExtent = this.marginExtent;
+    mounted.lines.style.left = `-${marginExtent}px`;
+    mounted.lines.setAttribute("width", String(width + marginExtent * 2));
     mounted.lines.setAttribute("height", String(Math.max(1, height)));
     mounted.lines.setAttribute(
       "viewBox",
-      `${-MARGIN_EXTENT} 0 ${width + MARGIN_EXTENT * 2} ${Math.max(1, height)}`,
+      `${-marginExtent} 0 ${width + marginExtent * 2} ${Math.max(1, height)}`,
     );
     this.redrawLeaderLines(mounted);
   }
@@ -957,11 +1039,14 @@ export class ReaderSession {
     runtime.card.classList.remove("zmm-editing");
     runtime.editor.classList.add("zmm-editor-hidden");
     runtime.preview.classList.remove("zmm-preview-hidden");
+    this.measurePreviewOverflow(runtime);
+    this.syncPreviewDOM(runtime);
     const mounted = this.mountedPages.get(pageIndex);
     if (mounted) this.layoutPage(mounted);
   }
 
   private updatePreview(runtime: CardRuntime): void {
+    runtime.previewMeasurementDirty = true;
     const value = runtime.currentValue;
     if (value) {
       try {
@@ -983,20 +1068,185 @@ export class ReaderSession {
       "zmm-compact-headings",
       this.renderingPreferences.compactHeadings,
     );
-    runtime.expandButton.hidden = !this.previewNeedsExpand(runtime);
-    runtime.expandButton.textContent = runtime.previewExpanded ? "收起预览" : "展开预览";
     this.applyRenderingPreferences(runtime);
+    this.measurePreviewOverflow(runtime);
+    this.syncPreviewDOM(runtime);
   }
 
-  private previewNeedsExpand(runtime: CardRuntime): boolean {
+  private measurePreviewOverflow(runtime: CardRuntime): void {
     const preview = runtime.preview;
-    if (runtime.previewExpanded) return true;
-    const height = preview.clientHeight || preview.scrollHeight;
-    return (
-      preview.scrollHeight > height + 2
-      || runtime.currentValue.split("\n").length > 5
-      || runtime.currentValue.length > 220
+    if (!runtime.previewMeasurementDirty || preview.classList.contains("zmm-preview-hidden")) return;
+    preview.classList.add("zmm-measuring-collapsed");
+    const clientHeight = preview.clientHeight;
+    const scrollHeight = preview.scrollHeight;
+    preview.classList.remove("zmm-measuring-collapsed");
+    if (!clientHeight && !scrollHeight) return;
+    runtime.previewMeasurementDirty = false;
+    const wasTruncated = runtime.truncated;
+    runtime.truncated = scrollHeight > clientHeight + 2;
+    if (wasTruncated !== runtime.truncated) runtime.measuredHeight = undefined;
+    if (!runtime.truncated) {
+      runtime.pinnedExpanded = false;
+      runtime.hoverExpanded = false;
+    }
+    preview.classList.toggle("zmm-preview-truncated", runtime.truncated);
+  }
+
+  private syncPreviewDOM(runtime: CardRuntime): void {
+    const expanded = runtime.truncated && (
+      runtime.hoverExpanded
+      || runtime.pinnedExpanded
+      || runtime.focusWithin
+      || runtime.selectionWithin
+      || runtime.pointerSelecting
     );
+    runtime.previewExpanded = expanded;
+    runtime.preview.classList.toggle("zmm-preview-expanded", expanded);
+    runtime.preview.setAttribute("aria-expanded", String(expanded));
+    runtime.expandButton.hidden = !runtime.truncated;
+    runtime.expandButton.textContent = runtime.pinnedExpanded ? "取消固定" : "固定展开";
+    runtime.expandButton.setAttribute("aria-pressed", String(runtime.pinnedExpanded));
+    runtime.card.classList.toggle("zmm-preview-open", expanded);
+    runtime.card.classList.toggle("zmm-preview-pinned", runtime.pinnedExpanded);
+  }
+
+  private enterPreview(runtime: CardRuntime): void {
+    runtime.pointerInside = true;
+    if (runtime.collapseTimer) clearTimeout(runtime.collapseTimer);
+    runtime.collapseTimer = undefined;
+    if (runtime.expandTimer) clearTimeout(runtime.expandTimer);
+    runtime.expandTimer = setTimeout(() => {
+      runtime.expandTimer = undefined;
+      if (!runtime.pointerInside || !runtime.truncated || this.destroyed) return;
+      runtime.hoverExpanded = true;
+      this.changePreviewState(runtime);
+    }, HOVER_EXPAND_DELAY_MS);
+  }
+
+  private leavePreview(runtime: CardRuntime): void {
+    runtime.pointerInside = false;
+    if (runtime.expandTimer) clearTimeout(runtime.expandTimer);
+    runtime.expandTimer = undefined;
+    this.schedulePreviewCollapse(runtime);
+  }
+
+  private focusPreview(runtime: CardRuntime): void {
+    runtime.focusWithin = true;
+    if (runtime.collapseTimer) clearTimeout(runtime.collapseTimer);
+    runtime.collapseTimer = undefined;
+    if (runtime.truncated) runtime.hoverExpanded = true;
+    this.changePreviewState(runtime);
+  }
+
+  private refreshFocusState(runtime: CardRuntime): void {
+    runtime.focusWithin = runtime.card.ownerDocument.activeElement !== null
+      && runtime.card.contains(runtime.card.ownerDocument.activeElement);
+    if (runtime.focusWithin) {
+      if (runtime.truncated) runtime.hoverExpanded = true;
+      this.changePreviewState(runtime);
+    } else {
+      this.schedulePreviewCollapse(runtime);
+    }
+  }
+
+  private schedulePreviewCollapse(runtime: CardRuntime): void {
+    if (runtime.collapseTimer) clearTimeout(runtime.collapseTimer);
+    runtime.collapseTimer = setTimeout(() => {
+      runtime.collapseTimer = undefined;
+      runtime.selectionWithin = this.hasSelectionWithin(runtime);
+      if (
+        runtime.pointerInside
+        || runtime.focusWithin
+        || runtime.selectionWithin
+        || runtime.pointerSelecting
+        || runtime.pinnedExpanded
+        || runtime.card.classList.contains("zmm-editing")
+        || runtime.saving
+        || this.destroyed
+      ) return;
+      runtime.hoverExpanded = false;
+      this.changePreviewState(runtime);
+    }, HOVER_COLLAPSE_DELAY_MS);
+  }
+
+  private changePreviewState(runtime: CardRuntime): void {
+    const wasExpanded = runtime.previewExpanded;
+    this.syncPreviewDOM(runtime);
+    if (wasExpanded === runtime.previewExpanded) return;
+    runtime.measuredHeight = undefined;
+    // layoutPage captures the old positions and keeps the active expanded
+    // preview at the same top edge while pushing cards below it down.
+    this.relayoutRuntime(runtime);
+  }
+
+  private bindInteractionDocument(doc: Document): void {
+    if (this.interactionDocument === doc) return;
+    this.unbindInteractionDocument();
+    this.interactionDocument = doc;
+    doc.addEventListener("pointerup", this.onDocumentPointerUp, true);
+    doc.addEventListener("selectionchange", this.onDocumentSelectionChange);
+    doc.fonts?.addEventListener("loadingdone", this.onFontsLoaded);
+    void doc.fonts?.ready.then(() => {
+      if (this.interactionDocument === doc && !this.destroyed) this.remeasurePreviews();
+    });
+  }
+
+  private unbindInteractionDocument(): void {
+    this.interactionDocument?.removeEventListener("pointerup", this.onDocumentPointerUp, true);
+    this.interactionDocument?.removeEventListener("selectionchange", this.onDocumentSelectionChange);
+    this.interactionDocument?.fonts?.removeEventListener("loadingdone", this.onFontsLoaded);
+    this.interactionDocument = undefined;
+  }
+
+  private remeasurePreviews(): void {
+    for (const mounted of this.mountedPages.values()) {
+      for (const runtime of mounted.runtimes) {
+        this.measurePreviewOverflow(runtime);
+        this.syncPreviewDOM(runtime);
+        runtime.measuredHeight = undefined;
+      }
+      this.layoutPage(mounted);
+    }
+  }
+
+  private finishPointerSelection(): void {
+    for (const runtime of this.cardRuntimes()) {
+      runtime.pointerSelecting = false;
+      this.changePreviewState(runtime);
+    }
+    this.updateSelectionStates();
+  }
+
+  private updateSelectionStates(): void {
+    for (const runtime of this.cardRuntimes()) this.refreshSelectionState(runtime);
+  }
+
+  private refreshSelectionState(runtime: CardRuntime): void {
+    const selected = this.hasSelectionWithin(runtime);
+    if (runtime.selectionWithin === selected) return;
+    runtime.selectionWithin = selected;
+    if (selected) this.changePreviewState(runtime);
+    else if (!runtime.pointerInside && !runtime.focusWithin && !runtime.pinnedExpanded) {
+      this.schedulePreviewCollapse(runtime);
+    }
+  }
+
+  private hasSelectionWithin(runtime: CardRuntime): boolean {
+    const selection = runtime.card.ownerDocument.getSelection();
+    let selected = false;
+    if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
+      try {
+        for (let index = 0; index < selection.rangeCount; index += 1) {
+          if (selection.getRangeAt(index).intersectsNode(runtime.preview)) {
+            selected = true;
+            break;
+          }
+        }
+      } catch {
+        selected = false;
+      }
+    }
+    return selected;
   }
 
   private applyRenderingPreferences(runtime: CardRuntime): void {
@@ -1006,7 +1256,7 @@ export class ReaderSession {
     );
     runtime.card.style.setProperty(
       "--zmm-math-font-size",
-      `${13 * this.renderingPreferences.previewFontSize * this.renderingPreferences.mathScale / 10_000}px`,
+      `${13 * this.renderingPreferences.previewFontSize * 1.08 * this.renderingPreferences.mathScale / 10_000}px`,
     );
   }
 
@@ -1107,6 +1357,24 @@ export class ReaderSession {
     return [...this.mountedPages.values()].flatMap((page) => page.runtimes);
   }
 
+  private get marginExtent(): number {
+    return this.renderingPreferences.cardWidth + CARD_GAP_FROM_PAGE;
+  }
+
+  private applyCardGeometry(): void {
+    const width = `${this.renderingPreferences.cardWidth}px`;
+    const gutter = `${this.renderingPreferences.cardWidth + CARD_GAP_FROM_PAGE + EXTRA_VIEWER_GUTTER}px`;
+    try {
+      const viewer = this.adapter.viewerElement();
+      viewer.style.setProperty("--zmm-card-width", width);
+      viewer.style.setProperty("--zmm-gutter-width", gutter);
+    } catch {
+      // Reader dimensions are applied when its viewer becomes available.
+    }
+    this.overlayRoot?.style.setProperty("--zmm-card-width", width);
+    this.overlayRoot?.style.setProperty("--zmm-gutter-width", gutter);
+  }
+
   private ensureStyles(doc: Document): void {
     if (!doc.getElementById(KATEX_STYLE_ID)) {
       const katexStyles = doc.createElement("style");
@@ -1131,6 +1399,7 @@ export class ReaderSession {
       this.overlayRoot.className = "zmm-overlay-root";
     }
     if (this.overlayRoot.parentElement !== host) host.append(this.overlayRoot);
+    this.applyCardGeometry();
   }
 
   private positionOverlay(mounted: MountedPage): void {
@@ -1188,6 +1457,8 @@ export class ReaderSession {
     for (const runtime of mounted.runtimes) {
       if (runtime.timer) clearTimeout(runtime.timer);
       if (runtime.statusTimer) clearTimeout(runtime.statusTimer);
+      if (runtime.expandTimer) clearTimeout(runtime.expandTimer);
+      if (runtime.collapseTimer) clearTimeout(runtime.collapseTimer);
     }
     mounted.overlay.remove();
     mounted.handle.element.classList.remove("zmm-page");
@@ -1195,9 +1466,13 @@ export class ReaderSession {
   }
 
   private removeUi(): void {
+    this.unbindInteractionDocument();
     for (const pageIndex of [...this.mountedPages.keys()]) this.unmountPage(pageIndex);
     try {
-      this.adapter.viewerElement().classList.remove("zmm-viewer");
+      const viewer = this.adapter.viewerElement();
+      viewer.classList.remove("zmm-viewer");
+      viewer.style.removeProperty("--zmm-card-width");
+      viewer.style.removeProperty("--zmm-gutter-width");
       this.adapter.document().getElementById(STYLE_ID)?.remove();
       this.adapter.document().getElementById(KATEX_STYLE_ID)?.remove();
     } catch {

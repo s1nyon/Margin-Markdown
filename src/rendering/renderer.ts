@@ -9,6 +9,7 @@ export interface RenderOptions {
 }
 
 export interface RenderingPreferences extends RenderOptions {
+  cardWidth: number;
   previewFontSize: number;
   mathScale: number;
   compactHeadings: boolean;

@@ -1,6 +1,6 @@
 export const PDF_STYLES = `
 .pdfViewer.zmm-viewer {
-  --zmm-gutter-width: 304px;
+  --zmm-gutter-width: calc(var(--zmm-card-width, 300px) + 40px);
   padding-inline-start: calc(18px + var(--zmm-gutter-width)) !important;
   padding-inline-end: calc(18px + var(--zmm-gutter-width)) !important;
 }
@@ -74,7 +74,7 @@ export const PDF_STYLES = `
 .zmm-margin-column {
   position: absolute;
   top: 0;
-  width: 264px;
+  width: var(--zmm-card-width, 300px);
   height: 100%;
   overflow: visible;
   pointer-events: none;
@@ -140,17 +140,17 @@ export const PDF_STYLES = `
 .zmm-card {
   position: absolute;
   box-sizing: border-box;
-  width: 264px;
+  width: var(--zmm-card-width, 300px);
   min-height: 42px;
-  padding: 7px 9px;
-  border: 1px solid color-mix(in srgb, var(--zmm-color) 45%, #a8adb5);
-  border-radius: 6px;
-  background: color-mix(in srgb, Canvas 96%, var(--zmm-color) 4%);
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, CanvasText 14%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, Canvas 98%, var(--zmm-color) 2%);
   color: CanvasText;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .16);
-  font: var(--zmm-preview-font-size, 13px)/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 5px 16px rgba(0, 0, 0, .08);
+  font: var(--zmm-preview-font-size, 13px)/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   pointer-events: auto;
-  transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
+  transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease;
 }
 
 .zmm-card-right {
@@ -184,30 +184,15 @@ export const PDF_STYLES = `
 
 .zmm-card.zmm-hovered {
   z-index: 4;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .27);
-}
-
-.zmm-card-right.zmm-hovered {
-  transform: translateX(3px) scale(1.018);
-}
-
-.zmm-card-left.zmm-hovered {
-  transform: translateX(-3px) scale(1.018);
-}
-
-.zmm-card-right.zmm-active:not(.zmm-hovered) {
-  transform: translateX(2px);
-}
-
-.zmm-card-left.zmm-active:not(.zmm-hovered) {
-  transform: translateX(-2px);
+  border-color: color-mix(in srgb, var(--zmm-color) 32%, CanvasText 12%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 0, 0, .12);
 }
 
 .zmm-card-preview {
   display: block;
   box-sizing: border-box;
   width: 100%;
-  max-height: 7.2em;
+  max-height: 7.5em;
   margin: 0;
   padding: 3px 4px;
   overflow: hidden;
@@ -216,21 +201,32 @@ export const PDF_STYLES = `
   background: transparent;
   color: inherit;
   font-size: inherit;
-  line-height: 1.45;
+  line-height: 1.5;
   text-align: start;
   overflow-wrap: anywhere;
   cursor: text;
+  mask-image: none;
+}
+
+.zmm-card-preview.zmm-preview-truncated:not(.zmm-preview-expanded) {
   mask-image: linear-gradient(to bottom, #000 calc(100% - 1.2em), transparent 100%);
 }
 
-.zmm-card-preview.zmm-preview-expanded {
+.zmm-card-preview.zmm-preview-expanded:not(.zmm-measuring-collapsed) {
   max-height: none;
   overflow: visible;
   mask-image: none;
 }
 
+.zmm-card-preview.zmm-measuring-collapsed {
+  max-height: 7.5em !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  mask-image: none !important;
+}
+
 .zmm-card-preview p {
-  margin: .35em 0;
+  margin: .4em 0;
 }
 
 .zmm-card-preview > :first-child {
@@ -296,12 +292,12 @@ export const PDF_STYLES = `
 }
 
 .zmm-card-preview .katex {
-  font-size: var(--zmm-math-font-size, 13px);
+  font-size: var(--zmm-math-font-size, 14px);
 }
 
 .zmm-card-preview .katex-display {
   max-width: 100%;
-  margin: .45em 0;
+  margin: .4em 0;
   overflow-x: auto;
   overflow-y: hidden;
   text-align: left;
@@ -335,7 +331,7 @@ export const PDF_STYLES = `
 }
 
 .zmm-card-preview:hover {
-  background: color-mix(in srgb, CanvasText 3%, transparent);
+  background: color-mix(in srgb, var(--zmm-color) 3%, transparent);
 }
 
 .zmm-card-preview.zmm-empty-preview {
@@ -418,6 +414,13 @@ export const PDF_STYLES = `
   mask-image: none;
 }
 
+.zmm-low-zoom .zmm-card.zmm-preview-open .zmm-card-preview {
+  max-height: none !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  mask-image: none !important;
+}
+
 .zmm-card-footer {
   display: flex;
   align-items: center;
@@ -446,7 +449,21 @@ export const PDF_STYLES = `
 
 @media (prefers-color-scheme: dark) {
   .zmm-card {
-    box-shadow: 0 2px 7px rgba(0, 0, 0, .42);
+    border-color: color-mix(in srgb, CanvasText 20%, transparent);
+    background: color-mix(in srgb, Canvas 95%, var(--zmm-color) 5%);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .18), 0 8px 22px rgba(0, 0, 0, .22);
+  }
+
+  .zmm-card.zmm-hovered {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .22), 0 10px 28px rgba(0, 0, 0, .3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zmm-card,
+  .zmm-line,
+  .zmm-line-dot {
+    transition: none !important;
   }
 }
 `;

@@ -15,6 +15,7 @@ const RENDER_SETTING_SELECTOR = "[data-zmm-render-setting]";
 const DEFAULT_RENDERING_PREFERENCES: RenderingPreferences = {
   markdown: true,
   latex: true,
+  cardWidth: 300,
   previewFontSize: 100,
   mathScale: 100,
   compactHeadings: true,
@@ -253,10 +254,8 @@ export class PluginController {
   private readRenderingPreferences(): RenderingPreferences {
     const read = (key: keyof RenderingPreferences): unknown => {
       try {
-        return (Zotero.Prefs as any).get(
-          `${config.prefsPrefix}.rendering.${key}`,
-          DEFAULT_RENDERING_PREFERENCES[key],
-        );
+        const value = (Zotero.Prefs as any).get(`${config.prefsPrefix}.rendering.${key}`);
+        return value === undefined ? DEFAULT_RENDERING_PREFERENCES[key] : value;
       } catch {
         return DEFAULT_RENDERING_PREFERENCES[key];
       }
@@ -266,6 +265,7 @@ export class PluginController {
     return {
       markdown: Boolean(read("markdown")),
       latex: Boolean(read("latex")),
+      cardWidth: clampCardWidth(Number(read("cardWidth"))),
       previewFontSize: clampPercent(previewFontSize),
       mathScale: clampPercent(mathScale),
       compactHeadings: Boolean(read("compactHeadings")),
@@ -278,7 +278,9 @@ export class PluginController {
   ): void {
     const value = input.type === "checkbox"
       ? input.checked
-      : clampPercent(Number(input.value));
+      : key === "cardWidth"
+        ? clampCardWidth(Number(input.value))
+        : clampPercent(Number(input.value));
     this.renderingPreferences = {
       ...this.renderingPreferences,
       [key]: value,
@@ -314,7 +316,7 @@ export class PluginController {
     const output = input.ownerDocument.querySelector<HTMLOutputElement>(
       `[data-zmm-render-output="${key}"]`,
     );
-    if (output) output.value = `${value}%`;
+    if (output) output.value = key === "cardWidth" ? `${value}px` : `${value}%`;
   }
 
   private setTypeVisible(type: MarginAnnotationType, visible: boolean): void {
@@ -506,4 +508,9 @@ export class PluginController {
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 100;
   return Math.min(160, Math.max(80, Math.round(value / 5) * 5));
+}
+
+function clampCardWidth(value: number): number {
+  if (!Number.isFinite(value)) return 300;
+  return Math.min(380, Math.max(260, Math.round(value / 10) * 10));
 }

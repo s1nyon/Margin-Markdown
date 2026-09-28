@@ -16,6 +16,7 @@ declare namespace _ZoteroTypes {
       "compactNoteIcons": boolean;
       "rendering.markdown": boolean;
       "rendering.latex": boolean;
+      "rendering.cardWidth": number;
       "rendering.previewFontSize": number;
       "rendering.mathScale": number;
       "rendering.compactHeadings": boolean;

@@ -435,6 +435,29 @@ describe("ReaderSession", () => {
     const commentCard = document.querySelector<HTMLElement>(
       '.zmm-card[data-annotation-key="COMMENT1"]',
     )!;
+    const preview = document.querySelector<HTMLDivElement>(
+      '[data-annotation-key="COMMENT1"] .zmm-card-preview',
+    )!;
+    Object.defineProperties(preview, {
+      clientHeight: { configurable: true, get: () => 97 },
+      scrollHeight: { configurable: true, get: () => 140 },
+    });
+    session.setRenderingPreferences({
+      markdown: true,
+      latex: true,
+      cardWidth: 310,
+      previewFontSize: 100,
+      mathScale: 100,
+      compactHeadings: true,
+    });
+    session.setRenderingPreferences({
+      markdown: true,
+      latex: true,
+      cardWidth: 300,
+      previewFontSize: 100,
+      mathScale: 100,
+      compactHeadings: true,
+    });
     commentCard.dispatchEvent(new Event("pointerenter"));
     expect(commentCard.classList.contains("zmm-hovered")).toBe(true);
     expect(
@@ -443,12 +466,34 @@ describe("ReaderSession", () => {
       ),
     ).not.toBeNull();
     expect(nativeAnnotation.classList.contains("zmm-native-hover")).toBe(true);
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(false);
+    await vi.advanceTimersByTimeAsync(179);
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(true);
     commentCard.dispatchEvent(new Event("pointerleave"));
+    await vi.advanceTimersByTimeAsync(299);
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(false);
     expect(nativeAnnotation.classList.contains("zmm-native-hover")).toBe(false);
 
-    const preview = document.querySelector<HTMLDivElement>(
-      '[data-annotation-key="COMMENT1"] .zmm-card-preview',
+    preview.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(true);
+    document.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(false);
+
+    const previewExpand = commentCard.querySelector<HTMLButtonElement>(
+      ".zmm-preview-expand",
     )!;
+    previewExpand.click();
+    expect(previewExpand.getAttribute("aria-pressed")).toBe("true");
+    commentCard.dispatchEvent(new Event("pointerenter"));
+    commentCard.dispatchEvent(new Event("pointerleave"));
+    await vi.advanceTimersByTimeAsync(500);
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(true);
+    previewExpand.click();
+    expect(preview.classList.contains("zmm-preview-expanded")).toBe(false);
     const paperLink = preview.querySelector<HTMLAnchorElement>("a")!;
     paperLink.click();
     expect((Zotero as any).launchURL).toHaveBeenCalledWith("https://example.org/paper");

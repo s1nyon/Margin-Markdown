@@ -103,6 +103,18 @@
         <html:small>使用适合论文页边卡片的标题比例。</html:small>
       </html:span>
     </html:label>
+    <html:label class="zmm-prefs-range-row" for="zmm-prefs-card-width">
+      <html:span>卡片宽度</html:span>
+      <html:input id="zmm-prefs-card-width"
+                  type="range"
+                  min="260"
+                  max="380"
+                  step="10"
+                  value="300"
+                  data-zmm-render-setting="cardWidth"
+                  preference="extensions.zotero.marginmarkdown.rendering.cardWidth" />
+      <html:output data-zmm-render-output="cardWidth">300px</html:output>
+    </html:label>
     <html:label class="zmm-prefs-range-row" for="zmm-prefs-preview-size">
       <html:span>预览字号</html:span>
       <html:input id="zmm-prefs-preview-size"

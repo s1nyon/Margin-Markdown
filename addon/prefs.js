@@ -7,6 +7,7 @@ pref("extensions.zotero.marginmarkdown.types.image", true);
 pref("extensions.zotero.marginmarkdown.compactNoteIcons", false);
 pref("extensions.zotero.marginmarkdown.rendering.markdown", true);
 pref("extensions.zotero.marginmarkdown.rendering.latex", true);
+pref("extensions.zotero.marginmarkdown.rendering.cardWidth", 300);
 pref("extensions.zotero.marginmarkdown.rendering.previewFontSize", 100);
 pref("extensions.zotero.marginmarkdown.rendering.mathScale", 100);
 pref("extensions.zotero.marginmarkdown.rendering.compactHeadings", true);

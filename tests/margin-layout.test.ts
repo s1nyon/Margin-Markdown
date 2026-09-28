@@ -70,4 +70,36 @@ describe("margin card layout", () => {
     expect(result.hiddenIDs).toEqual([]);
     expect(result.contentHeight).toBeGreaterThan(220);
   });
+
+  it("keeps the hovered card anchored while expanded and pushes later cards down", () => {
+    const result = layoutCollapsibleMargin(
+      [
+        { id: "above", anchorY: 20, height: 48 },
+        { id: "hovered", anchorY: 90, height: 160 },
+        { id: "below", anchorY: 150, height: 60 },
+      ],
+      {
+        pageHeight: 220,
+        padding: 8,
+        gap: 8,
+        stableAnchor: {
+          id: "hovered",
+          top: 64,
+          previousPositions: new Map([
+            ["above", 8],
+            ["hovered", 64],
+            ["below", 112],
+          ]),
+        },
+      },
+    );
+
+    expect(result.positions.map(({ id }) => id)).toEqual(["above", "hovered", "below"]);
+    expect(result.positions[1].y).toBe(64);
+    expect(result.positions[2].y).toBeGreaterThanOrEqual(
+      result.positions[1].y + result.positions[1].height + 8,
+    );
+    expect(result.hiddenIDs).toEqual([]);
+    expect(result.overflow).toBe(true);
+  });
 });
