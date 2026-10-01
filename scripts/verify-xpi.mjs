@@ -44,6 +44,15 @@ if (entries.some((entry) => entry.startsWith("addon/"))) {
 }
 
 const manifest = JSON.parse(zip.readAsText("manifest.json"));
+if (manifest.manifest_version !== 2) {
+  throw new Error("XPI must use the Zotero Manifest V2 format");
+}
+if (
+  manifest.applications?.zotero?.strict_min_version !== "9.0" ||
+  manifest.applications?.zotero?.strict_max_version !== "10.0.*"
+) {
+  throw new Error("XPI must support Zotero 9.0 through 10.0.*");
+}
 if (manifest.version !== packageJSON.version) {
   throw new Error(`Unexpected manifest version: ${manifest.version}`);
 }
@@ -58,6 +67,28 @@ if (!scriptBundle.includes("data:font/woff2;base64,")) {
 }
 
 const bytes = await readFile(archive);
+const expectedHash = `sha512:${createHash("sha512").update(bytes).digest("hex")}`;
+const expectedLink = `https://github.com/s1nyon/Margin-Markdown/releases/download/v${packageJSON.version}/${name}`;
+if (
+  manifest.applications.zotero.update_url !==
+  "https://github.com/s1nyon/Margin-Markdown/releases/download/release/update.json"
+) {
+  throw new Error("XPI has the wrong update manifest URL");
+}
+for (const filename of ["update.json", "update-beta.json"]) {
+  const updates = JSON.parse(
+    await readFile(path.join(root, "dist", filename), "utf8"),
+  ).addons?.[packageJSON.config.addonID]?.updates;
+  const update = updates?.find((entry) => entry.version === packageJSON.version);
+  if (
+    !update || update.update_hash !== expectedHash ||
+    update.update_link !== expectedLink ||
+    update.applications?.zotero?.strict_min_version !== "9.0" ||
+    update.applications?.zotero?.strict_max_version !== "10.0.*"
+  ) {
+    throw new Error(`${filename} does not describe the final Zotero 9–10 XPI`);
+  }
+}
 const sha256 = createHash("sha256").update(bytes).digest("hex");
 process.stdout.write(
   `Verified ${archive}\nVersion: ${manifest.version}\nEntries: ${entries.length}\nSHA-256: ${sha256}\n`,

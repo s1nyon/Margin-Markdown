@@ -1,6 +1,10 @@
 # Manual smoke test
 
-Record the operating system and Zotero version with each run. The first release targets Zotero 9.
+Record the operating system and Zotero version with each run. The supported range is Zotero 9–10.
+
+## Windows Zotero 10.0.5 integration run
+
+Version 0.1.5 passed on 2026-10-01 using the installed Zotero executable and a separate profile and data directory. Checks covered addon activation and preferences, highlight and note cards, leader lines, Markdown and KaTeX, embedded fonts, exact source saving to the database, autosave, zoom and rotation, native annotation selection and type filtering, compact note icon geometry and restoration, toolbar toggling, disabling cleanup, and re-enabling. The user's library was not used for these checks.
 
 ## Bootstrap behavior
 
@@ -56,5 +60,4 @@ world frame -> goal frame -> lookup table
 
 ## Remaining platform checks
 
-- Install, restart, and exercise the XPI on macOS, Windows, and Linux Zotero 9 builds.
-- Verify Zotero 10 only after a separate compatibility implementation is added.
+- Install, restart, and exercise the XPI on other Zotero 9 and 10 builds on macOS, Windows, and Linux.

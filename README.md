@@ -7,7 +7,7 @@
   <p>阅读时渲染 Markdown 和数学公式；编辑时保留原始文本。</p>
   <p><a href="README.en.md">English</a> · <a href="#安装与快速开始">安装与快速开始</a> · <a href="docs/manual-smoke-test.md">使用与测试</a> · <a href="https://github.com/s1nyon/Margin-Markdown/issues">反馈问题</a></p>
   <p>
-    <a href="https://www.zotero.org/support/" aria-label="Zotero 9"><img alt="Zotero 9" src="https://img.shields.io/badge/Zotero-9-4f46e5?style=flat-square"></a>
+    <a href="https://www.zotero.org/support/" aria-label="Zotero 9–10"><img alt="Zotero 9–10" src="https://img.shields.io/badge/Zotero-9%E2%80%9310-4f46e5?style=flat-square"></a>
     <img alt="Markdown and LaTeX" src="https://img.shields.io/badge/Markdown%20%2B-LaTeX-0f766e?style=flat-square">
     <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-64748b?style=flat-square"></a>
   </p>
@@ -45,12 +45,12 @@ h(n) = \max(h_1(n), h_2(n))
 
 ## 安装与快速开始
 
-1. 打开 Zotero 9 的 **工具 → 插件**，在插件管理器的齿轮菜单中选择 **从文件安装插件…**。
+1. 打开 Zotero 9 或 10 的 **工具 → 插件**，在插件管理器的齿轮菜单中选择 **从文件安装插件…**。
 2. 选择 Margin Markdown 的 `.xpi` 并按提示重启 Zotero。
 3. 打开 PDF，在 Zotero 批注中添加评论；阅读时可直接在页边查看。
 4. 鼠标停留在较长的卡片上即可展开；点击卡片正文切换到 Markdown 源码编辑。
 
-GitHub Releases 目前没有可下载的 XPI。可以按下方步骤从源码构建安装包。
+可从 [GitHub Release v0.1.5](https://github.com/s1nyon/Margin-Markdown/releases/tag/v0.1.5) 下载 `margin-markdown-0.1.5.xpi`，也可以按下方步骤从源码构建安装包。
 
 Margin Markdown 与 Zotero Margin Comments 使用不同的插件 ID，但两者都在 PDF 页边显示卡片。使用时请只启用其中一个，避免重复显示。
 
@@ -72,7 +72,7 @@ Zotero 的 `annotation.comment` 始终保存原始 Markdown 文本。插件生�
 
 ## 兼容性
 
-本项目目前以 **Zotero 9** 为目标版本，尚未适配 Zotero 10。自动化测试覆盖核心渲染、布局和保存流程；macOS、Windows 与 Linux 上的安装和实际使用还需按[手动测试清单](docs/manual-smoke-test.md)分别验证。
+本项目支持 **Zotero 9–10**。0.1.5 已在 Windows 的 Zotero 10.0.5 独立配置中验证启用、PDF 卡片与引线、Markdown 和数学公式、批注保存、定位、缩放旋转、类型过滤、小便签图标及停用后重新启用。自动化测试覆盖核心渲染、布局和保存流程；其他系统与版本仍需按[手动测试清单](docs/manual-smoke-test.md)分别验证。
 
 ## 从源码构建
 

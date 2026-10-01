@@ -20,4 +20,10 @@ const built = path.join(root, "build", name);
 const destinationDirectory = path.join(root, "dist");
 await mkdir(destinationDirectory, { recursive: true });
 await copyFile(built, path.join(destinationDirectory, name));
+for (const filename of ["update.json", "update-beta.json"]) {
+  await copyFile(
+    path.join(root, "build", filename),
+    path.join(destinationDirectory, filename),
+  );
+}
 process.stdout.write(`Packaged ${path.join(destinationDirectory, name)}\n`);

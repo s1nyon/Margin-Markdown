@@ -24,7 +24,7 @@ const NATIVE_HOVER_STYLES = `
 }
 `;
 
-export class Zotero9ReaderAdapter {
+export class ZoteroReaderAdapter {
   private pdfWindow?: Window & Record<string, any>;
   private pdfDocument?: Document;
   private pdfViewer?: any;
@@ -206,7 +206,9 @@ export class Zotero9ReaderAdapter {
   }
 
   selectAnnotation(key: string): void {
-    this.internalReader?.setSelectedAnnotations?.([key]);
+    // Zotero's host bridge clones the location into the reader window and
+    // selects the annotation there. Passing an array directly across that
+    // window boundary causes a Gecko permission error.
     void this.reader?.navigate?.({ annotationID: key });
   }
 
@@ -428,7 +430,7 @@ function compactNotePatchSource(enabled: boolean): string {
     const compactHit = (owner, annotation, position) => {
       if (!annotation?.position?.rects?.[0] || !position?.rects?.[0]) return null;
       const page = getPage(owner, annotation.position.pageIndex);
-      const renderer = page?._pageRenderer;
+      const renderer = page?._pageRenderer ?? page;
       if (typeof renderer?._p2v !== "function") return null;
 
       const notePosition = renderer._p2v(annotation.position);
@@ -449,16 +451,30 @@ function compactNotePatchSource(enabled: boolean): string {
 
     const installRendererPatch = (renderer) => {
       const prototype = renderer && Object.getPrototypeOf(renderer);
-      if (!prototype || typeof prototype._drawNote !== "function") return;
+      const method = typeof prototype?._drawNote === "function" ? "_drawNote"
+        : typeof prototype?._pushNote === "function" ? "_pushNote" : null;
+      if (!method) return;
       let patch = state.rendererPatches.find((item) => item.prototype === prototype);
       if (!patch) {
         patch = {
           prototype,
-          original: prototype._drawNote,
+          method,
+          original: prototype[method],
           wrapper: null,
           enabled: false,
         };
-        patch.wrapper = function(annotation) {
+        patch.wrapper = method === "_pushNote" ? function(items, annotation) {
+          const start = items.length;
+          patch.original.call(this, items, annotation);
+          if (!patch.enabled) return;
+          for (let i = start; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind !== "noteIcon") continue;
+            item.x += compactOffset * this._scale;
+            item.y += compactOffset * this._scale;
+            item.scale = this._scale * compactSize / iconSize;
+          }
+        } : function(annotation) {
           if (!patch.enabled) return patch.original.call(this, annotation);
           if (!this._context || typeof this._p2v !== "function") {
             return patch.original.call(this, annotation);
@@ -484,16 +500,16 @@ function compactNotePatchSource(enabled: boolean): string {
 
       if (enabled) {
         patch.enabled = true;
-        if (prototype._drawNote !== patch.wrapper) {
-          patch.original = prototype._drawNote;
-          prototype._drawNote = patch.wrapper;
+        if (prototype[method] !== patch.wrapper) {
+          patch.original = prototype[method];
+          prototype[method] = patch.wrapper;
           changed = true;
         }
       }
       else {
         patch.enabled = false;
-        if (prototype._drawNote === patch.wrapper) {
-          prototype._drawNote = patch.original;
+        if (prototype[method] === patch.wrapper) {
+          prototype[method] = patch.original;
           changed = true;
         }
       }
@@ -561,6 +577,8 @@ function compactNotePatchSource(enabled: boolean): string {
     if (view) {
       installViewPatch(view);
       for (const page of view._pages ?? []) {
+        // Zotero 10 renders annotation overlays directly on the Page object.
+        installRendererPatch(page);
         installRendererPatch(page?._pageRenderer);
         installRendererPatch(page?._detailRenderer);
       }
@@ -568,6 +586,7 @@ function compactNotePatchSource(enabled: boolean): string {
 
     if (changed) {
       for (const page of view?._pages ?? []) {
+        if ("_lastSignature" in page) page._lastSignature = null;
         page?._pageRenderer?._invalidateSignature?.();
         page?._detailRenderer?._invalidateSignature?.();
         page?.render?.();

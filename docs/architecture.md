@@ -4,7 +4,7 @@
 
 The plugin entry point creates the Zotero add-on instance and registers the Reader controller. The controller owns preference registration, Reader sessions, and annotation notifications. Each Reader session reads supported annotations through `AnnotationStore`, maps PDF positions to page anchors, and manages card layout, leader lines, editing, and saves.
 
-The core layout and annotation model do not depend on Zotero APIs. The Reader adapter contains Zotero 9-specific integration. This is the compatibility boundary for a later Zotero 10 port.
+The core layout and annotation model do not depend on Zotero APIs. The Reader adapter contains integration for Zotero 9 and 10, including their Canvas and DOM note renderers.
 
 ## Markdown rendering
 
@@ -28,4 +28,4 @@ Raw HTML is disabled in Markdown. Sanitization runs against the Reader document'
 
 ## Compatibility
 
-The first supported target is Zotero 9. Reader-specific APIs stay in the adapter. Zotero 10 support will be added after the Zotero 9 renderer and interaction paths are stable.
+The manifest accepts Zotero 9 through 10.0.*. Reader-specific APIs stay in the adapter. Annotation selection uses Zotero's host navigation bridge so data is cloned into the reader window. Compact note icons support both the Zotero 9 Canvas renderer and the Zotero 10 Page display list; disabling restores the original methods. Version 0.1.5 was verified in Windows Zotero 10.0.5 with an isolated profile and data directory.

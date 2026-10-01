@@ -7,7 +7,7 @@
   <p>Read rendered Markdown and math, then edit the original text in place.</p>
   <p><a href="README.md">简体中文</a> · <a href="#install-and-get-started">Install</a> · <a href="docs/manual-smoke-test.md">Manual test guide (Chinese)</a> · <a href="https://github.com/s1nyon/Margin-Markdown/issues">Report an issue</a></p>
   <p>
-    <a href="https://www.zotero.org/support/" aria-label="Zotero 9"><img alt="Zotero 9" src="https://img.shields.io/badge/Zotero-9-4f46e5?style=flat-square"></a>
+    <a href="https://www.zotero.org/support/" aria-label="Zotero 9–10"><img alt="Zotero 9–10" src="https://img.shields.io/badge/Zotero-9%E2%80%9310-4f46e5?style=flat-square"></a>
     <img alt="Markdown and LaTeX" src="https://img.shields.io/badge/Markdown%20%2B-LaTeX-0f766e?style=flat-square">
     <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-64748b?style=flat-square"></a>
   </p>
@@ -45,12 +45,12 @@ Supported Markdown includes headings, emphasis, lists, quotes, code, and links. 
 
 ## Install and get started
 
-1. In Zotero 9, open **Tools → Plugins** and choose **Install Plugin From File…** from the gear menu.
+1. In Zotero 9 or 10, open **Tools → Plugins** and choose **Install Plugin From File…** from the gear menu.
 2. Select the Margin Markdown `.xpi` and restart Zotero if prompted.
 3. Open a PDF and add comments to Zotero annotations; Margin Markdown displays them beside the page.
 4. Hover over a long card to expand it. Click its body to edit the Markdown source.
 
-There is no XPI on GitHub Releases yet. Build one from source using the steps below.
+Download `margin-markdown-0.1.5.xpi` from [GitHub Release v0.1.5](https://github.com/s1nyon/Margin-Markdown/releases/tag/v0.1.5), or build one from source using the steps below.
 
 Margin Markdown has its own add-on ID, but it shares the PDF margin with Zotero Margin Comments. Enable only one of the two to avoid duplicate cards.
 
@@ -72,7 +72,7 @@ Zotero's `annotation.comment` always stores the original Markdown source. Genera
 
 ## Compatibility
 
-This version targets **Zotero 9** and has not been adapted for Zotero 10. Automated tests cover rendering, layout, and saving. Installation and use on macOS, Windows, and Linux still need to be checked with the [manual test guide](docs/manual-smoke-test.md).
+This version supports **Zotero 9–10**. Version 0.1.5 was checked in an isolated Windows Zotero 10.0.5 profile: activation, PDF cards and leader lines, Markdown and math, saving, annotation navigation, zoom and rotation, type filtering, compact note icons, and disabling and re-enabling. Automated tests cover rendering, layout, and saving. Other platforms and versions still need the [manual test guide](docs/manual-smoke-test.md).
 
 ## Build from source
 

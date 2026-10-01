@@ -21,7 +21,7 @@ import { KATEX_CSS } from "../rendering/katex-styles.generated";
 import { AnnotationStore } from "./annotation-store";
 import {
   type PdfPageHandle,
-  Zotero9ReaderAdapter,
+  ZoteroReaderAdapter,
 } from "./reader-adapter";
 import { PDF_STYLES } from "./styles";
 
@@ -99,7 +99,7 @@ interface MarginColumnRuntime {
 }
 
 export class ReaderSession {
-  private readonly adapter: Zotero9ReaderAdapter;
+  private readonly adapter: ZoteroReaderAdapter;
   private readonly forcedKeys = new Set<string>();
   private readonly mountedPages = new Map<number, MountedPage>();
   private readonly expandedMargins = new Set<string>();
@@ -139,7 +139,7 @@ export class ReaderSession {
     private readonly store: AnnotationStore,
     private readonly onStateChange: () => void,
   ) {
-    this.adapter = new Zotero9ReaderAdapter(reader);
+    this.adapter = new ZoteroReaderAdapter(reader);
   }
 
   get attachmentID(): number {

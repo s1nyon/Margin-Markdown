@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { copyFile, cp, mkdir, readdir, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { copyFile, cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import AdmZip from "adm-zip";
@@ -70,3 +71,20 @@ await copyFile(
 const archive = new AdmZip();
 archive.addLocalFolder(path.join(root, "build", "addon"));
 archive.writeZip(path.join(root, "build", `margin-markdown-${packageJSON.version}.xpi`));
+
+// The scaffold hashes its initial archive before the license files are added.
+// Update both release channels to describe the final, repacked XPI.
+const bytes = await readFile(
+  path.join(root, "build", `margin-markdown-${packageJSON.version}.xpi`),
+);
+const updateHash = `sha512:${createHash("sha512").update(bytes).digest("hex")}`;
+for (const filename of ["update.json", "update-beta.json"]) {
+  const file = path.join(root, "build", filename);
+  const data = JSON.parse(await readFile(file, "utf8"));
+  const update = data.addons[packageJSON.config.addonID].updates.find(
+    (entry) => entry.version === packageJSON.version,
+  );
+  if (!update) continue;
+  update.update_hash = updateHash;
+  await writeFile(file, `${JSON.stringify(data, null, 2)}\n`);
+}
